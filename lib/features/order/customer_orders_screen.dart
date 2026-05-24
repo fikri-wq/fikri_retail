@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'order_provider.dart';
 import 'order_chat_screen.dart';
 import '../../models/order_model.dart';
+import '../../services/supabase_service.dart';
 
 class CustomerOrdersScreen extends ConsumerWidget {
   const CustomerOrdersScreen({super.key});
@@ -270,28 +271,7 @@ class CustomerOrdersScreen extends ConsumerWidget {
                         ],
                         if (!isCancelled) ...[
                           const SizedBox(width: 8),
-                          SizedBox(
-                            height: 36,
-                            child: ElevatedButton.icon(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => OrderChatScreen(orderId: order.id),
-                                  ),
-                                );
-                              },
-                              icon: const Icon(Icons.chat_rounded, size: 16),
-                              label: const Text('Chat', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Theme.of(context).colorScheme.primary,
-                                foregroundColor: Colors.white,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                padding: const EdgeInsets.symmetric(horizontal: 12),
-                              ),
-                            ),
-                          ),
+                          _ChatButtonWithBadge(orderId: order.id),
                         ],
                       ],
                     ),
@@ -420,6 +400,93 @@ class CustomerOrdersScreen extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+
+// Chat button with realtime unread badge
+class _ChatButtonWithBadge extends StatelessWidget {
+  final String orderId;
+  const _ChatButtonWithBadge({required this.orderId});
+
+  @override
+  Widget build(BuildContext context) {
+    final currentUserId = SupabaseService.client.auth.currentUser?.id;
+
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: SupabaseService.client
+          .from('order_chats')
+          .stream(primaryKey: ['id'])
+          .eq('order_id', orderId)
+          .order('created_at', ascending: false),
+      builder: (context, snapshot) {
+        // Count unread: messages from admin (is_admin = true) that are not from current user
+        int unreadCount = 0;
+        if (snapshot.hasData && currentUserId != null) {
+          unreadCount = snapshot.data!
+              .where((msg) => msg['sender_id'] != currentUserId)
+              .take(10) // Only check recent 10 messages
+              .length;
+          // Simple heuristic: show badge if there are messages from the other party
+          // In a real app you'd track "last_read_at" per user
+          // For now, show badge if latest message is from admin
+          if (snapshot.data!.isNotEmpty && snapshot.data!.first['sender_id'] != currentUserId) {
+            unreadCount = 1; // Show dot
+          } else {
+            unreadCount = 0;
+          }
+        }
+
+        return SizedBox(
+          height: 36,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => OrderChatScreen(orderId: orderId),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.chat_rounded, size: 16),
+                label: const Text('Chat', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                ),
+              ),
+              if (unreadCount > 0)
+                Positioned(
+                  top: -4,
+                  right: -4,
+                  child: Container(
+                    width: 14,
+                    height: 14,
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.red.withValues(alpha: 0.4),
+                          blurRadius: 4,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
