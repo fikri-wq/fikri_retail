@@ -72,41 +72,52 @@ class _PesananBadgeIcon extends StatelessWidget {
       return Icon(isActive ? Icons.receipt_long : Icons.receipt_long_outlined);
     }
 
-    // Stream semua chat di pesanan milik user ini
+    // Stream pesanan milik user ini, lalu cek chat terbaru
     return StreamBuilder<List<Map<String, dynamic>>>(
       stream: SupabaseService.client
-          .from('order_chats')
+          .from('orders')
           .stream(primaryKey: ['id'])
-          .order('created_at', ascending: false),
-      builder: (context, snapshot) {
-        bool hasUnread = false;
-
-        if (snapshot.hasData && snapshot.data!.isNotEmpty) {
-          // Cek apakah ada pesan terbaru yang bukan dari user ini (dari admin)
-          hasUnread = snapshot.data!
-              .where((msg) => msg['sender_id'] != userId && msg['is_admin'] == true)
-              .isNotEmpty;
+          .eq('customer_id', userId),
+      builder: (context, ordersSnapshot) {
+        if (!ordersSnapshot.hasData || ordersSnapshot.data!.isEmpty) {
+          return Icon(isActive ? Icons.receipt_long : Icons.receipt_long_outlined);
         }
 
-        return Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Icon(isActive ? Icons.receipt_long : Icons.receipt_long_outlined),
-            if (hasUnread)
-              Positioned(
-                top: -2,
-                right: -6,
-                child: Container(
-                  width: 10,
-                  height: 10,
-                  decoration: BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 1.5),
+        final orderIds = ordersSnapshot.data!.map((o) => o['id'].toString()).toList();
+
+        // Cek chat terbaru dari semua order milik user
+        return FutureBuilder<List<Map<String, dynamic>>>(
+          future: SupabaseService.client
+              .from('order_chats')
+              .select()
+              .inFilter('order_id', orderIds)
+              .neq('sender_id', userId)
+              .order('created_at', ascending: false)
+              .limit(1),
+          builder: (context, chatSnapshot) {
+            final hasUnread = chatSnapshot.hasData && chatSnapshot.data!.isNotEmpty;
+
+            return Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(isActive ? Icons.receipt_long : Icons.receipt_long_outlined),
+                if (hasUnread)
+                  Positioned(
+                    top: -2,
+                    right: -6,
+                    child: Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 1.5),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-          ],
+              ],
+            );
+          },
         );
       },
     );
