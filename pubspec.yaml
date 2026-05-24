@@ -1,0 +1,141 @@
+name: fikriretailproject
+description: A sample command-line application.
+publish_to: 'none' # Mencegah project ter-publish secara tidak sengaja ke pub.dev
+version: 1.0.0
+
+environment:
+  sdk: ^3.7.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # UI & Icons
+  cupertino_icons: ^1.0.8
+  flutter_svg: ^2.0.10+1
+  cached_network_image: ^3.4.1
+  
+  # State Management
+  hooks_riverpod: ^2.6.1
+  flutter_hooks: ^0.20.5
+  
+  # Backend & Network
+  supabase_flutter: ^2.6.0
+  http: ^1.2.2
+  
+  # Location & Maps
+  google_maps_flutter: ^2.9.0
+  geolocator: ^11.1.0
+  geocoding: ^3.0.0
+  
+  # Utilities
+  url_launcher: ^6.3.1
+  image_picker: ^1.1.2
+  intl: ^0.19.0 # Jika terjadi konflik saat pub get, ubah nilainya menjadi: any
+  google_fonts: ^6.3.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/
+    - assets/products/
+    - assets/products/AIR_MINERAL/AQUA/
+    - assets/products/AIR_MINERAL/CLEO/
+    - assets/products/AIR_MINERAL/CLUB/
+    - assets/products/AIR_MINERAL/LE_MINERALE/
+    - assets/products/AIR_MINERAL/VIT/
+    - assets/products/BUMBU_MASAK/BANGOABCINDOFOOD/
+    - assets/products/BUMBU_MASAK/INDOFOOD_RACIK/
+    - assets/products/BUMBU_MASAK/KOBE/
+    - assets/products/BUMBU_MASAK/MASAKO/
+    - assets/products/BUMBU_MASAK/ROYCO/
+    - assets/products/BUMBU_MASAK/SAJIKU/
+    - assets/products/DETERGEN_DAN_LAUNDRY/ATTACK/
+    - assets/products/DETERGEN_DAN_LAUNDRY/DAIA/
+    - assets/products/DETERGEN_DAN_LAUNDRY/DOWNY/
+    - assets/products/DETERGEN_DAN_LAUNDRY/MOLTO/
+    - assets/products/DETERGEN_DAN_LAUNDRY/RINSO/
+    - assets/products/DETERGEN_DAN_LAUNDRY/SO_KLIN/
+    - assets/products/FROZEN_FOOD/BELFOODS/
+    - assets/products/FROZEN_FOOD/BERNARDI/
+    - assets/products/FROZEN_FOOD/CHAMP/
+    - assets/products/FROZEN_FOOD/FIESTA/
+    - assets/products/FROZEN_FOOD/KANZLER/
+    - assets/products/FROZEN_FOOD/SO_GOOD/
+    - assets/products/KOPI/ABC/
+    - assets/products/KOPI/GOOD_DAY/
+    - assets/products/KOPI/KAPAL_API/
+    - assets/products/KOPI/LUWAK_WHITE_COFFE/
+    - assets/products/KOPI/NESCAFE/
+    - assets/products/KOPI/TORABIKA/
+    - assets/products/MAKANAN_KALENG_DAN_INSTAN/ABC/
+    - assets/products/MAKANAN_KALENG_DAN_INSTAN/BOTAN/
+    - assets/products/MAKANAN_KALENG_DAN_INSTAN/PRONAS/
+    - assets/products/MAKANAN_KALENG_DAN_INSTAN/QUAKER/
+    - assets/products/MAKANAN_KALENG_DAN_INSTAN/SUPER_BUBUR/
+    - assets/products/MIE_INSTAN/INDOMIE/
+    - assets/products/MIE_INSTAN/MIE_GAGA/
+    - assets/products/MIE_INSTAN/MIE_SEDAP/
+    - assets/products/MIE_INSTAN/POP_MIE/
+    - assets/products/MIE_INSTAN/SARIMI/
+    - assets/products/MIE_INSTAN/SUPERMI/
+    - assets/products/MINUMAN_SERBUK/BENG_BENG_DRINK/
+    - assets/products/MINUMAN_SERBUK/CHOCOLATOS/
+    - assets/products/MINUMAN_SERBUK/JASJUS/
+    - assets/products/MINUMAN_SERBUK/MARIMAS/
+    - assets/products/MINUMAN_SERBUK/NUTRISARI/
+    - assets/products/MINUMAN_SIAP_MINUM/COCA_COLA/
+    - assets/products/MINUMAN_SIAP_MINUM/FANTA/
+    - assets/products/MINUMAN_SIAP_MINUM/FRESTEA/
+    - assets/products/MINUMAN_SIAP_MINUM/KRATINGDAENG/
+    - assets/products/MINUMAN_SIAP_MINUM/MIZONE/
+    - assets/products/MINUMAN_SIAP_MINUM/POCARI_SWEAT/
+    - assets/products/MINUMAN_SIAP_MINUM/SPRITE/
+    - assets/products/MINUMAN_SIAP_MINUM/TEH_BOTOL_SOSRO/
+    - assets/products/MINUMAN_SIAP_MINUM/TEH_PUCUK_HARUM/
+    - assets/products/MINUMAN_SIAP_MINUM/YOU_C1000/
+    - assets/products/PASTA_GIGI_DAN_SIKAT_GIGI/CIPTADENT/
+    - assets/products/PASTA_GIGI_DAN_SIKAT_GIGI/CLOSE_UP/
+    - assets/products/PASTA_GIGI_DAN_SIKAT_GIGI/FORMULA/
+    - assets/products/PASTA_GIGI_DAN_SIKAT_GIGI/ORAL_B/
+    - assets/products/PASTA_GIGI_DAN_SIKAT_GIGI/PEPSODENT/
+    - assets/products/PASTA_GIGI_DAN_SIKAT_GIGI/SENSODYNE/
+    - assets/products/PRODUK_BAYI/JOHNSONS_BABY/
+    - assets/products/PRODUK_BAYI/MAMYPOKO/
+    - assets/products/PRODUK_BAYI/MERRIES/
+    - assets/products/PRODUK_BAYI/MILNA/
+    - assets/products/PRODUK_BAYI/PROMINA/
+    - assets/products/PRODUK_BAYI/SWEETY/
+    - assets/products/PRODUK_BAYI/ZWITSAL/
+    - assets/products/SABUN_SHAMPOO_DAN_PERSONAL_CARE/CLEAR/
+    - assets/products/SABUN_SHAMPOO_DAN_PERSONAL_CARE/DETTOL/
+    - assets/products/SABUN_SHAMPOO_DAN_PERSONAL_CARE/DOVE/
+    - assets/products/SABUN_SHAMPOO_DAN_PERSONAL_CARE/LIFEBUOY/
+    - assets/products/SABUN_SHAMPOO_DAN_PERSONAL_CARE/LUX/
+    - assets/products/SABUN_SHAMPOO_DAN_PERSONAL_CARE/PANTENE/
+    - assets/products/SABUN_SHAMPOO_DAN_PERSONAL_CARE/SUNSILK/
+    - assets/products/SEMBAKO/BERAS/
+    - assets/products/SEMBAKO/GARAM_DAN_MARGARIN/
+    - assets/products/SEMBAKO/GULA/
+    - assets/products/SEMBAKO/MINYAK_GORENG/
+    - assets/products/SEMBAKO/TEPUNG/
+    - assets/products/SNACK_DAN_BISQUIT/CHITATO/
+    - assets/products/SNACK_DAN_BISQUIT/KHONG_GUAN/
+    - assets/products/SNACK_DAN_BISQUIT/NABATI/
+    - assets/products/SNACK_DAN_BISQUIT/OREO/
+    - assets/products/SNACK_DAN_BISQUIT/PIATTOS/
+    - assets/products/SNACK_DAN_BISQUIT/QTELA/
+    - assets/products/SNACK_DAN_BISQUIT/ROMA/
+    - assets/products/SNACK_DAN_BISQUIT/TARO/
+    - assets/products/SUSU/BEAR_BRAND/
+    - assets/products/SUSU/DANCOW/
+    - assets/products/SUSU/FRISIAN_FLAG/
+    - assets/products/SUSU/INDOMILK/
+    - assets/products/SUSU/MILO/
+    - assets/products/SUSU/SGM/
+    - assets/products/SUSU/ULTRAMILK/

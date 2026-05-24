@@ -1,0 +1,28 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "fikriretailproject (Chrome)",
+            "request": "launch",
+            "type": "dart",
+            "args": [
+                "-d",
+                "chrome"
+            ]
+        },
+        {
+            "name": "fikriretailproject (Windows)",
+            "request": "launch",
+            "type": "dart",
+            "args": [
+                "-d",
+                "windows"
+            ]
+        },
+        {
+            "name": "fikriretailproject (Debug)",
+            "request": "launch",
+            "type": "dart"
+        }
+    ]
+}
