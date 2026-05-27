@@ -57,7 +57,7 @@ class CustomerOrdersScreen extends ConsumerWidget {
                   );
                 },
                 loading: () => Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary)),
-                error: (err, stack) => Center(child: Text('Error: $err')),
+                error: (err, stack) => const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [CircularProgressIndicator(), SizedBox(height: 12), Text('Menghubungkan ulang...', style: TextStyle(color: Colors.grey))])),
               ),
             ),
           ],
