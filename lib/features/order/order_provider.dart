@@ -18,7 +18,8 @@ Future<Map<String, String>> _fetchUserNames(List<String> userIds) async {
       names[profile['id']] = profile['full_name'] ?? 'Unknown';
     }
     return names;
-  } catch (_) {
+  } catch (e) {
+    print('[_fetchUserNames] Error: $e');
     return {};
   }
 }

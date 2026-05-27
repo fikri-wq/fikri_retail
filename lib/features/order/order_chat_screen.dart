@@ -17,7 +17,7 @@ class _OrderChatScreenState extends State<OrderChatScreen> {
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
   late final Stream<List<Map<String, dynamic>>> _chatStream;
-  Map<String, String> _senderNames = {};
+  final Map<String, String> _senderNames = {};
 
   @override
   void initState() {
