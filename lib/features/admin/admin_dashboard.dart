@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
+import 'dart:convert';
+import 'dart:html' as html;
 
 import '../shop/product_provider.dart';
 import '../order/order_provider.dart';
@@ -1431,6 +1433,29 @@ class _OrderListTabState extends ConsumerState<OrderListTab> with SingleTickerPr
                   ),
                 ),
                 const Divider(),
+                // Download button
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () => _downloadReport(monthName, monthOrders),
+                      icon: const Icon(Icons.download_rounded, size: 18),
+                      label: Text(
+                        'Download Laporan $monthName (CSV)',
+                        style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                ),
+                const Divider(),
                 // Show order items in this month
                 ...monthOrders.map((o) => ListTile(
                   dense: true,
@@ -1467,6 +1492,62 @@ class _OrderListTabState extends ConsumerState<OrderListTab> with SingleTickerPr
         const SizedBox(height: 4),
         Text(value, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: color)),
       ],
+    );
+  }
+
+  void _downloadReport(String monthName, List<OrderModel> orders) {
+    final successfulOrders = orders.where((o) => o.status == 'delivered').toList();
+    final cancelledOrders = orders.where((o) => o.status == 'cancelled').toList();
+    final totalRevenue = successfulOrders.fold<double>(0, (sum, o) => sum + o.totalAmount);
+
+    // Build CSV content
+    final buffer = StringBuffer();
+    
+    // Header info
+    buffer.writeln('LAPORAN PENJUALAN - YETI SMART RETAIL');
+    buffer.writeln('Periode: $monthName');
+    buffer.writeln('Tanggal Cetak: ${DateFormat('dd MMMM yyyy HH:mm', 'id_ID').format(DateTime.now())}');
+    buffer.writeln('');
+    buffer.writeln('RINGKASAN');
+    buffer.writeln('Total Transaksi,${orders.length}');
+    buffer.writeln('Pesanan Selesai,${successfulOrders.length}');
+    buffer.writeln('Pesanan Batal,${cancelledOrders.length}');
+    buffer.writeln('Total Omset,Rp ${totalRevenue.toInt()}');
+    buffer.writeln('');
+    buffer.writeln('DETAIL TRANSAKSI');
+    buffer.writeln('No,Tanggal,Customer,Status,Metode,Items,Total');
+    
+    for (var i = 0; i < orders.length; i++) {
+      final o = orders[i];
+      final date = DateFormat('dd/MM/yyyy HH:mm').format(o.createdAt);
+      final customer = (o.customerName ?? 'Customer').replaceAll(',', ' ');
+      final status = o.status.toUpperCase();
+      final metode = o.address?.contains('Delivery') == true ? 'Delivery' : 'Pick Up';
+      
+      // Items summary
+      String items = '-';
+      if (o.items != null && o.items!.isNotEmpty) {
+        items = o.items!.map((item) => '${item['name']} x${item['quantity']}').join(' | ');
+        items = items.replaceAll(',', ';'); // Escape commas for CSV
+      }
+      
+      buffer.writeln('${i + 1},$date,$customer,$status,$metode,"$items",Rp ${o.totalAmount.toInt()}');
+    }
+
+    // Download as CSV file
+    final bytes = utf8.encode(buffer.toString());
+    final blob = html.Blob([bytes], 'text/csv;charset=utf-8');
+    final url = html.Url.createObjectUrlFromBlob(blob);
+    final anchor = html.AnchorElement(href: url)
+      ..setAttribute('download', 'Laporan_${monthName.replaceAll(' ', '_')}.csv')
+      ..click();
+    html.Url.revokeObjectUrl(url);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('✅ Laporan $monthName berhasil didownload!'),
+        backgroundColor: AppColors.primary,
+      ),
     );
   }
 
