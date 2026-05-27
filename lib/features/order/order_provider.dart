@@ -23,14 +23,26 @@ Future<Map<String, String>> _fetchUserNames(List<String> userIds) async {
   }
 }
 
-// Mengambil seluruh riwayat pesanan khusus untuk Admin (REALTIME)
+// Mengambil seluruh riwayat pesanan khusus untuk Admin (REALTIME + nama customer)
 final adminOrdersProvider = StreamProvider<List<OrderModel>>((ref) {
-  // Supabase Realtime: listen semua perubahan pada tabel orders
   return SupabaseService.client
       .from('orders')
       .stream(primaryKey: ['id'])
       .order('created_at', ascending: false)
-      .map((data) => data.map((e) => OrderModel.fromMap(e)).toList());
+      .asyncMap((data) async {
+        // Ambil nama customer dari profiles
+        final userIds = data
+            .map((e) => e['customer_id']?.toString() ?? '')
+            .where((id) => id.isNotEmpty)
+            .toSet()
+            .toList();
+        final names = await _fetchUserNames(userIds);
+        
+        return data.map((e) {
+          e['_customer_name'] = names[e['customer_id']] ?? 'Unknown';
+          return OrderModel.fromMap(e);
+        }).toList();
+      });
 });
 
 // Mengambil pesanan khusus untuk Customer yang sedang login (REALTIME)

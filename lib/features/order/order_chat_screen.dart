@@ -17,6 +17,7 @@ class _OrderChatScreenState extends State<OrderChatScreen> {
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
   late final Stream<List<Map<String, dynamic>>> _chatStream;
+  Map<String, String> _senderNames = {};
 
   @override
   void initState() {
@@ -26,6 +27,31 @@ class _OrderChatScreenState extends State<OrderChatScreen> {
         .stream(primaryKey: ['id'])
         .eq('order_id', widget.orderId)
         .order('created_at', ascending: true);
+    _loadSenderNames();
+  }
+
+  Future<void> _loadSenderNames() async {
+    try {
+      // Ambil info order untuk dapat customer_id
+      final order = await SupabaseService.client
+          .from('orders')
+          .select('customer_id')
+          .eq('id', widget.orderId)
+          .maybeSingle();
+      if (order != null) {
+        final customerId = order['customer_id'];
+        final profile = await SupabaseService.client
+            .from('profiles')
+            .select('id, full_name')
+            .eq('id', customerId)
+            .maybeSingle();
+        if (profile != null && mounted) {
+          setState(() {
+            _senderNames[profile['id']] = profile['full_name'] ?? 'Customer';
+          });
+        }
+      }
+    } catch (_) {}
   }
 
   @override
@@ -169,7 +195,7 @@ class _OrderChatScreenState extends State<OrderChatScreen> {
                               Padding(
                                 padding: const EdgeInsets.only(bottom: 4),
                                 child: Text(
-                                  isAdminMsg ? '🛒 Admin Toko' : '👤 Customer',
+                                  isAdminMsg ? '🛒 Admin Toko' : '👤 ${_senderNames[msg['sender_id']] ?? 'Customer'}',
                                   style: GoogleFonts.poppins(
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,
