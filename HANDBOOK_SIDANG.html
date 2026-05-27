@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Handbook Sidang - Yeti Smart Retail</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', sans-serif; background: #f0fafe; color: #1a2238; line-height: 1.6; }
+.slide { max-width: 900px; margin: 30px auto; background: white; border-radius: 24px; padding: 40px; box-shadow: 0 8px 30px rgba(0,0,0,0.08); page-break-after: always; }
+h1 { font-size: 32px; color: #00B8E6; margin-bottom: 8px; }
+h2 { font-size: 24px; color: #0288D1; margin-bottom: 16px; border-left: 5px solid #00B8E6; padding-left: 12px; }
+h3 { font-size: 18px; color: #1a2238; margin: 16px 0 8px; }
+.subtitle { color: #6D7588; font-size: 14px; margin-bottom: 24px; }
+.badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; margin: 2px; }
+.badge-blue { background: #E0F7FA; color: #0288D1; }
+.badge-green { background: #E8F5E9; color: #2E7D32; }
+.badge-orange { background: #FFF3E0; color: #E65100; }
+.badge-pink { background: #FCE4EC; color: #C62828; }
+.badge-purple { background: #F3E5F5; color: #6A1B9A; }
+.card { background: linear-gradient(135deg, #E0F7FA, #ffffff); border: 1px solid #B2EBF2; border-radius: 16px; padding: 20px; margin: 12px 0; }
+.card-dark { background: linear-gradient(135deg, #0288D1, #00B8E6); color: white; border-radius: 16px; padding: 20px; margin: 12px 0; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin: 16px 0; }
+.icon-box { text-align: center; padding: 20px; border-radius: 16px; background: #f8f9fa; border: 1px solid #e0e0e0; }
+.icon-box .emoji { font-size: 36px; margin-bottom: 8px; }
+.icon-box .label { font-size: 13px; font-weight: bold; color: #1a2238; }
+.icon-box .desc { font-size: 11px; color: #6D7588; margin-top: 4px; }
+.flow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 16px 0; }
+.flow-item { background: #E0F7FA; padding: 10px 16px; border-radius: 30px; font-size: 13px; font-weight: 600; color: #0288D1; }
+.flow-arrow { font-size: 20px; color: #00B8E6; }
+.highlight { background: linear-gradient(90deg, #FFD700, #FFA000); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: bold; }
+.code-box { background: #1a2238; color: #7DD3F8; padding: 16px; border-radius: 12px; font-family: monospace; font-size: 13px; margin: 12px 0; overflow-x: auto; white-space: pre; }
+.analogy { background: #FFF8E1; border-left: 4px solid #FFB300; padding: 16px; border-radius: 0 12px 12px 0; margin: 12px 0; }
+.analogy::before { content: "💡 "; }
+table { width: 100%; border-collapse: collapse; margin: 12px 0; border-radius: 12px; overflow: hidden; }
+th { background: #00B8E6; color: white; padding: 12px; text-align: left; font-size: 13px; }
+td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
+tr:hover { background: #f8f9fa; }
+.qa { margin: 16px 0; }
+.qa .q { font-weight: bold; color: #0288D1; margin-bottom: 4px; }
+.qa .a { color: #1a2238; padding-left: 16px; border-left: 3px solid #B2EBF2; margin-bottom: 16px; }
+</style>
+</head>
+<body>
+
+<!-- SLIDE 1: COVER -->
+<div class="slide" style="text-align:center; padding:60px 40px;">
+<div style="font-size:60px; margin-bottom:16px;">🛒</div>
+<h1 style="font-size:42px; text-align:center;">Yeti Smart Retail</h1>
+<p class="subtitle" style="font-size:18px;">Handbook Persiapan Sidang Skripsi</p>
+<div style="margin:24px 0;">
+<span class="badge badge-blue">Flutter</span>
+<span class="badge badge-green">Supabase</span>
+<span class="badge badge-orange">AI Search</span>
+<span class="badge badge-pink">Realtime</span>
+<span class="badge badge-purple">E-Commerce</span>
+</div>
+<p style="color:#6D7588; margin-top:32px;">Aplikasi retail digital dengan fitur pencarian AI,<br>chat realtime, dan manajemen pesanan GPS</p>
+</div>
+
+<!-- SLIDE 2: TECH STACK -->
+<div class="slide">
+<h2>🧱 Tech Stack (Bahan-bahan)</h2>
+<p class="subtitle">Ibarat masak, ini bahan-bahan yang kita pakai</p>
+<div class="grid-3">
+<div class="icon-box"><div class="emoji">📱</div><div class="label">Flutter</div><div class="desc">Bikin tampilan app<br>(1 kode untuk Web, Android, iOS)</div></div>
+<div class="icon-box"><div class="emoji">🗄️</div><div class="label">Supabase</div><div class="desc">Database + Login + Storage<br>(pengganti Firebase)</div></div>
+<div class="icon-box"><div class="emoji">🧠</div><div class="label">AI (gte-small)</div><div class="desc">Bikin produk "paham" makna<br>(bukan cuma keyword)</div></div>
+<div class="icon-box"><div class="emoji">⚡</div><div class="label">Realtime</div><div class="desc">Data update otomatis<br>(tanpa refresh)</div></div>
+<div class="icon-box"><div class="emoji">📍</div><div class="label">GPS + Maps</div><div class="desc">Lokasi pengiriman<br>(nama tempat, bukan koordinat)</div></div>
+<div class="icon-box"><div class="emoji">🌐</div><div class="label">Vercel</div><div class="desc">Hosting web app<br>(bisa diakses online)</div></div>
+</div>
+<div class="analogy">Bayangkan Supabase itu seperti "otak" di belakang layar. Flutter itu "wajah" yang dilihat user. AI itu "asisten pintar" yang bantu cari produk.</div>
+</div>
+
+<!-- SLIDE 3: ARSITEKTUR -->
+<div class="slide">
+<h2>🏗️ Cara Kerja Sistem</h2>
+<p class="subtitle">Bagaimana semua bagian saling terhubung</p>
+<div class="card-dark" style="text-align:center; font-size:14px;">
+<p style="margin-bottom:12px;">👤 <strong>User buka app di HP/Browser</strong></p>
+<p style="font-size:24px;">⬇️</p>
+<p style="margin-bottom:12px;">📱 <strong>Flutter App</strong> (tampilan + logika)</p>
+<p style="font-size:24px;">⬇️</p>
+<p style="margin-bottom:12px;">🌐 <strong>Internet (HTTPS + WebSocket)</strong></p>
+<p style="font-size:24px;">⬇️</p>
+<p>🗄️ <strong>Supabase</strong> (database, auth, storage, realtime, AI)</p>
+</div>
+<div class="analogy">Seperti restoran: Flutter = pelayan (yang kamu lihat), Supabase = dapur (yang masak data), Internet = jalan antara meja dan dapur.</div>
+</div>
+
+
+<!-- SLIDE 1: COVER -->
+<div class="slide" style="background: linear-gradient(135deg, #00B8E6, #0288D1); color: white; text-align: center; padding: 80px 40px;">
+  <div style="font-size: 80px; margin-bottom: 20px;">🛒</div>
+  <h1 style="color: white; font-size: 42px;">Yeti Smart Retail</h1>
+  <p style="font-size: 18px; opacity: 0.9; margin: 16px 0;">Aplikasi Belanja Digital dengan AI</p>
+  <div style="margin-top: 40px;">
+    <span class="badge" style="background: rgba(255,255,255,0.25); color: white;">📚 Handbook Sidang</span>
+    <span class="badge" style="background: rgba(255,255,255,0.25); color: white;">🎓 Persiapan Skripsi</span>
+  </div>
+  <p style="margin-top: 60px; font-size: 14px; opacity: 0.8;">Penjelasan dengan bahasa sederhana 🍼</p>
+</div>
+
+<!-- SLIDE 2: APA ITU PROJECT INI -->
+<div class="slide">
+  <h1>📱 Apa sih project ini?</h1>
+  <p class="subtitle">Penjelasan paling sederhana</p>
+  <div class="card-dark">
+    <h3 style="color: white;">🏪 Bayangkan...</h3>
+    <p style="font-size: 16px; margin-top: 8px;">Toko sembako Bu Yeti, tapi <b>online</b>. Customer bisa belanja dari HP, terus barangnya diantar atau diambil sendiri.</p>
+  </div>
+  <div class="grid">
+    <div class="icon-box"><div class="emoji">👤</div><div class="label">Customer</div><div class="desc">Belanja, lihat produk, checkout, chat admin</div></div>
+    <div class="icon-box"><div class="emoji">👨‍💼</div><div class="label">Admin</div><div class="desc">Kelola produk, terima pesanan, balas chat</div></div>
+  </div>
+  <div class="analogy">Mirip seperti <b>Tokopedia/Shopee</b>, tapi khusus 1 toko aja. Plus ada fitur AI buat cari produk.</div>
+</div>
+
+<!-- SLIDE 3: TEKNOLOGI -->
+<div class="slide">
+  <h1>🛠️ Teknologi yang dipakai</h1>
+  <p class="subtitle">Bahan-bahan untuk membangun aplikasi</p>
+  <div class="grid-3">
+    <div class="icon-box" style="background: linear-gradient(135deg, #02569B, #4FC3F7); color: white;">
+      <div class="emoji">📱</div>
+      <div class="label" style="color: white;">Flutter</div>
+      <div class="desc" style="color: white; opacity: 0.9;">Bikin tampilan app (UI)</div>
+    </div>
+    <div class="icon-box" style="background: linear-gradient(135deg, #3ECF8E, #2ECC71); color: white;">
+      <div class="emoji">🗄️</div>
+      <div class="label" style="color: white;">Supabase</div>
+      <div class="desc" style="color: white; opacity: 0.9;">Tempat simpan data</div>
+    </div>
+    <div class="icon-box" style="background: linear-gradient(135deg, #FF6B9D, #FFC107); color: white;">
+      <div class="emoji">🤖</div>
+      <div class="label" style="color: white;">AI Embedding</div>
+      <div class="desc" style="color: white; opacity: 0.9;">Otaknya pencarian</div>
+    </div>
+  </div>
+  <div class="analogy"><b>Flutter</b> = wajah & badan app | <b>Supabase</b> = otak & ingatan | <b>AI</b> = kecerdasan</div>
+</div>
+
+<!-- SLIDE 4: ARSITEKTUR -->
+<div class="slide">
+  <h1>🏗️ Cara Kerja Sistem</h1>
+  <p class="subtitle">Bagaimana semuanya terhubung</p>
+  <div class="flow">
+    <div class="flow-item">📱 HP Customer</div>
+    <span class="flow-arrow">⇄</span>
+    <div class="flow-item" style="background: #FFE5E5; color: #C62828;">🌐 Internet</div>
+    <span class="flow-arrow">⇄</span>
+    <div class="flow-item" style="background: #E8F5E9; color: #2E7D32;">🗄️ Supabase</div>
+  </div>
+  <div class="card">
+    <h3>📦 Yang disimpan di Supabase:</h3>
+    <div style="margin-top: 12px;">
+      <span class="badge badge-blue">👥 Akun User</span>
+      <span class="badge badge-green">🛒 Produk</span>
+      <span class="badge badge-orange">📋 Pesanan</span>
+      <span class="badge badge-pink">💬 Chat</span>
+      <span class="badge badge-purple">📸 Foto</span>
+    </div>
+  </div>
+  <div class="analogy">Mirip seperti aplikasi dompet digital — di HP ada tampilan, tapi semua data sebenarnya disimpan di "bank" (server).</div>
+</div>
+
+<!-- SLIDE 5: AI SEARCH -->
+<div class="slide">
+  <h1>🤖 AI Pencarian Produk</h1>
+  <p class="subtitle">Yang paling sering ditanyakan dosen!</p>
+  <div class="card-dark">
+    <h3 style="color: white;">🧠 Cara kerjanya seperti ini:</h3>
+    <p style="margin-top: 8px;">Setiap produk diubah jadi <b>"sidik jari angka"</b> (vektor 384 angka) yang mewakili maknanya.</p>
+  </div>
+  <div class="grid">
+    <div class="icon-box" style="background: #FFF3E0;">
+      <div class="emoji">🍜</div>
+      <div class="label">Indomie Goreng</div>
+      <div class="desc" style="font-family: monospace; font-size: 9px;">[0.23, -0.81, 0.45, ...]</div>
+    </div>
+    <div class="icon-box" style="background: #FFF3E0;">
+      <div class="emoji">🍜</div>
+      <div class="label">Sarimi Soto</div>
+      <div class="desc" style="font-family: monospace; font-size: 9px;">[0.21, -0.79, 0.42, ...]</div>
+    </div>
+  </div>
+  <div class="analogy"><b>Angka mereka MIRIP</b> karena sama-sama mie instan. AI bisa tahu walaupun beda merek!</div>
+  <h3 style="margin-top: 20px;">🔍 Saat customer cari "mie pedas":</h3>
+  <div class="flow">
+    <div class="flow-item">"mie pedas"</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-item">[angka...]</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-item" style="background: #E8F5E9; color: #2E7D32;">Bandingkan dengan SEMUA produk</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-item" style="background: #FFF3E0; color: #E65100;">Tampilkan yang PALING MIRIP</div>
+  </div>
+</div>
+
+
+<!-- SLIDE 6: COSINE SIMILARITY -->
+<div class="slide">
+  <h1>📐 Cosine Similarity (Penting!)</h1>
+  <p class="subtitle">Cara mengukur "kemiripan" 2 produk</p>
+  <div class="card">
+    <h3>🎯 Analogi paling sederhana:</h3>
+    <p style="margin-top: 8px;">Bayangkan kamu pergi ke arah <b>Utara</b>, temanmu juga ke arah <b>Utara</b>. Berarti kalian <b>SEARAH</b> (mirip).</p>
+    <p style="margin-top: 8px;">Kalau kamu ke Utara, dia ke Selatan → <b>Berlawanan</b> (tidak mirip).</p>
+  </div>
+  <div class="grid-3">
+    <div class="icon-box" style="background: linear-gradient(135deg, #4CAF50, #81C784); color: white;">
+      <div class="emoji">⬆️⬆️</div>
+      <div class="label" style="color: white;">Skor: 1.0</div>
+      <div class="desc" style="color: white;">Sangat mirip</div>
+    </div>
+    <div class="icon-box" style="background: linear-gradient(135deg, #FFA726, #FFB74D); color: white;">
+      <div class="emoji">⬆️➡️</div>
+      <div class="label" style="color: white;">Skor: 0.5</div>
+      <div class="desc" style="color: white;">Lumayan mirip</div>
+    </div>
+    <div class="icon-box" style="background: linear-gradient(135deg, #EF5350, #E57373); color: white;">
+      <div class="emoji">⬆️⬇️</div>
+      <div class="label" style="color: white;">Skor: -1</div>
+      <div class="desc" style="color: white;">Berlawanan</div>
+    </div>
+  </div>
+  <div class="card-dark">
+    <p>Di project ini, kita pakai <b>threshold 0.70</b> — artinya hanya tampilkan produk yang <span class="highlight">kemiripannya minimal 70%</span>.</p>
+  </div>
+</div>
+
+<!-- SLIDE 7: REKOMENDASI -->
+<div class="slide">
+  <h1>✨ Rekomendasi "Untukmu"</h1>
+  <p class="subtitle">Berdasarkan isi keranjang</p>
+  <div class="card">
+    <h3>🛒 Cara kerja:</h3>
+    <div class="flow" style="margin-top: 12px;">
+      <div class="flow-item">Lihat keranjang user</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-item">Hitung "rata-rata" sidik jari</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-item" style="background: #E8F5E9; color: #2E7D32;">Cari produk paling dekat</div>
+    </div>
+  </div>
+  <div class="grid">
+    <div class="icon-box" style="background: #FFF3E0;">
+      <div class="emoji">🥛🥛🥛</div>
+      <div class="label">Keranjang isi 3 jenis susu</div>
+    </div>
+    <div class="icon-box" style="background: #E8F5E9;">
+      <div class="emoji">🍼</div>
+      <div class="label">Rekomendasinya: produk susu lain!</div>
+    </div>
+  </div>
+  <div class="analogy">Kalau kamu suka beli kopi, sistem bakal kasih saran: "Kayaknya kamu suka kopi nih, coba yang ini juga!"</div>
+</div>
+
+<!-- SLIDE 8: REALTIME -->
+<div class="slide">
+  <h1>⚡ Realtime (Update Otomatis)</h1>
+  <p class="subtitle">Tanpa perlu refresh!</p>
+  <div class="card-dark">
+    <h3 style="color: white;">📞 Analogi: Telepon yang Selalu Nyala</h3>
+    <p style="margin-top: 8px;">Bayangkan kamu lagi telepon temanmu. Dia <b>langsung dengar</b> kamu ngomong, gak perlu menunggu.</p>
+    <p style="margin-top: 8px;">Itu seperti Realtime — data langsung sampai tanpa harus "tutup-buka" lagi.</p>
+  </div>
+  <h3>🔄 Contoh di app ini:</h3>
+  <div class="grid">
+    <div class="icon-box" style="background: #E0F7FA;">
+      <div class="emoji">📦</div>
+      <div class="label">Status Pesanan</div>
+      <div class="desc">Admin ubah → customer langsung lihat</div>
+    </div>
+    <div class="icon-box" style="background: #FCE4EC;">
+      <div class="emoji">💬</div>
+      <div class="label">Chat</div>
+      <div class="desc">Pesan langsung muncul tanpa refresh</div>
+    </div>
+  </div>
+  <div class="analogy">Teknologinya pakai <b>WebSocket</b> — semacam "saluran khusus" yang selalu terhubung antara HP dan server.</div>
+</div>
+
+<!-- SLIDE 9: FITUR-FITUR -->
+<div class="slide">
+  <h1>🎁 Fitur Lengkap App</h1>
+  <p class="subtitle">15+ fitur yang sudah dibuat</p>
+  <div class="grid-3">
+    <div class="icon-box"><div class="emoji">🔐</div><div class="label">Login & Daftar</div></div>
+    <div class="icon-box"><div class="emoji">🔑</div><div class="label">Lupa Password</div></div>
+    <div class="icon-box"><div class="emoji">🛍️</div><div class="label">Katalog Produk</div></div>
+    <div class="icon-box"><div class="emoji">🔍</div><div class="label">AI Search</div></div>
+    <div class="icon-box"><div class="emoji">✨</div><div class="label">Rekomendasi</div></div>
+    <div class="icon-box"><div class="emoji">🛒</div><div class="label">Keranjang</div></div>
+    <div class="icon-box"><div class="emoji">📍</div><div class="label">GPS Lokasi</div></div>
+    <div class="icon-box"><div class="emoji">💳</div><div class="label">Pembayaran</div></div>
+    <div class="icon-box"><div class="emoji">📦</div><div class="label">Status Pesanan</div></div>
+    <div class="icon-box"><div class="emoji">💬</div><div class="label">Chat Admin</div></div>
+    <div class="icon-box"><div class="emoji">🔔</div><div class="label">Notifikasi Badge</div></div>
+    <div class="icon-box"><div class="emoji">👨‍💼</div><div class="label">Dashboard Admin</div></div>
+  </div>
+</div>
+
+
+<!-- SLIDE 10: ALUR PESANAN -->
+<div class="slide">
+  <h1>🛒 Alur Pemesanan</h1>
+  <p class="subtitle">Dari klik beli sampai barang sampai</p>
+  <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 20px;">
+    <div class="flow-item" style="background: linear-gradient(90deg, #00B8E6, #4FC3F7); color: white; padding: 16px;">
+      1️⃣ Customer pilih produk → klik "Beli Sekarang"
+    </div>
+    <div class="flow-item" style="background: linear-gradient(90deg, #FFA726, #FFB74D); color: white; padding: 16px;">
+      2️⃣ Pilih metode: Antar (GPS) atau Ambil sendiri
+    </div>
+    <div class="flow-item" style="background: linear-gradient(90deg, #66BB6A, #81C784); color: white; padding: 16px;">
+      3️⃣ Transfer & upload bukti pembayaran
+    </div>
+    <div class="flow-item" style="background: linear-gradient(90deg, #AB47BC, #BA68C8); color: white; padding: 16px;">
+      4️⃣ Status: 🟡 PENDING → Admin verifikasi
+    </div>
+    <div class="flow-item" style="background: linear-gradient(90deg, #29B6F6, #4FC3F7); color: white; padding: 16px;">
+      5️⃣ Status: 🚚 SHIPPED → Customer langsung tahu (Realtime!)
+    </div>
+    <div class="flow-item" style="background: linear-gradient(90deg, #26A69A, #4DB6AC); color: white; padding: 16px;">
+      6️⃣ Status: ✅ DELIVERED → Selesai!
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 11: KEAMANAN -->
+<div class="slide">
+  <h1>🔒 Keamanan Data</h1>
+  <p class="subtitle">Data customer aman, gak bisa diintip orang lain</p>
+  <div class="card-dark">
+    <h3 style="color: white;">🛡️ Row Level Security (RLS)</h3>
+    <p style="margin-top: 8px;">Setiap data punya "satpam" yang ngecek: <b>"Kamu siapa? Boleh lihat data ini gak?"</b></p>
+  </div>
+  <div class="grid">
+    <div class="icon-box" style="background: #E8F5E9;">
+      <div class="emoji">👤</div>
+      <div class="label">Customer A</div>
+      <div class="desc">Hanya bisa lihat pesanan SENDIRI</div>
+    </div>
+    <div class="icon-box" style="background: #FCE4EC;">
+      <div class="emoji">🚫</div>
+      <div class="label">Customer B</div>
+      <div class="desc">TIDAK BISA intip pesanan A</div>
+    </div>
+  </div>
+  <div class="analogy"><b>Analogi:</b> Seperti loker bank — kamu cuma bisa buka loker yang kuncinya kamu pegang. Loker tetangga? Gak bisa.</div>
+  <h3 style="margin-top: 20px;">Yang dilindungi:</h3>
+  <div>
+    <span class="badge badge-blue">🔐 Password (di-hash)</span>
+    <span class="badge badge-green">📋 Pesanan</span>
+    <span class="badge badge-orange">💬 Chat</span>
+    <span class="badge badge-pink">🛒 Keranjang</span>
+    <span class="badge badge-purple">👤 Profil</span>
+  </div>
+</div>
+
+<!-- SLIDE 12: DATABASE -->
+<div class="slide">
+  <h1>🗄️ Database (Tempat Simpan Data)</h1>
+  <p class="subtitle">7 "buku catatan" yang saling terhubung</p>
+  <table>
+    <tr><th>📚 Buku</th><th>🎯 Isinya</th></tr>
+    <tr><td>👤 profiles</td><td>Data user (nama, role, foto)</td></tr>
+    <tr><td>📦 products</td><td>Daftar produk + sidik jari AI</td></tr>
+    <tr><td>🏷️ categories</td><td>Kategori (Sembako, Snack, dll)</td></tr>
+    <tr><td>🛒 carts</td><td>Isi keranjang user</td></tr>
+    <tr><td>📋 orders</td><td>Pesanan + status + GPS</td></tr>
+    <tr><td>💬 order_chats</td><td>Pesan chat per pesanan</td></tr>
+    <tr><td>📸 storage</td><td>Foto produk, bukti bayar, avatar</td></tr>
+  </table>
+  <div class="analogy">Mirip Excel berisi 7 sheet, tapi datanya saling terhubung otomatis (relational).</div>
+</div>
+
+<!-- SLIDE 13: PERTANYAAN SIDANG -->
+<div class="slide">
+  <h1>❓ Tanya Jawab Sidang</h1>
+  <p class="subtitle">Yang sering ditanya dosen</p>
+  <div class="qa">
+    <div class="q">Q: Kenapa pakai AI buat search?</div>
+    <div class="a">Karena AI bisa cari berdasarkan <b>makna</b>, bukan cuma kata. "mie pedas" bisa nemu Indomie Pedas, Sarimi Soto Pedas, dll, walaupun beda merek.</div>
+
+    <div class="q">Q: Apa beda Realtime sama Polling?</div>
+    <div class="a"><b>Polling</b> = cek terus-terusan tiap detik (boros). <b>Realtime</b> = server kasih tahu kalau ada update (hemat & cepat).</div>
+
+    <div class="q">Q: Kenapa Supabase, bukan Firebase?</div>
+    <div class="a">Supabase pakai <b>PostgreSQL</b> (database SQL) — bisa relasi antar tabel, support pgvector untuk AI, dan lebih murah.</div>
+
+    <div class="q">Q: Apa itu embedding 384 dimensi?</div>
+    <div class="a">Bayangkan setiap produk diwakili oleh <b>384 angka</b> yang menggambarkan maknanya. Mirip seperti "DNA" dari teks. AI model gte-small yang bikin DNA-nya.</div>
+
+    <div class="q">Q: Kalau internet putus gimana?</div>
+    <div class="a">App akan menampilkan error "Tidak ada koneksi". Data lama yang sudah dimuat tetap ada di memory. Realtime akan auto-reconnect saat internet kembali.</div>
+  </div>
+</div>
+
+<!-- SLIDE 14: KESIMPULAN -->
+<div class="slide" style="background: linear-gradient(135deg, #00B8E6, #0288D1); color: white; text-align: center;">
+  <div style="font-size: 80px; margin: 20px 0;">🎓</div>
+  <h1 style="color: white;">Siap Sidang!</h1>
+  <p style="font-size: 18px; opacity: 0.9; margin: 24px 0;">Kamu sekarang sudah paham:</p>
+  <div style="text-align: left; max-width: 500px; margin: 0 auto;">
+    <p style="margin: 12px 0;">✅ Apa itu project Yeti Smart Retail</p>
+    <p style="margin: 12px 0;">✅ Cara kerja AI Search & Cosine Similarity</p>
+    <p style="margin: 12px 0;">✅ Realtime dengan WebSocket</p>
+    <p style="margin: 12px 0;">✅ Keamanan dengan RLS</p>
+    <p style="margin: 12px 0;">✅ Struktur Database</p>
+    <p style="margin: 12px 0;">✅ Alur pemesanan & chat</p>
+  </div>
+  <div style="margin-top: 50px; padding: 20px; background: rgba(255,255,255,0.15); border-radius: 16px;">
+    <p style="font-size: 16px;"><b>💪 Tips Sidang:</b></p>
+    <p style="font-size: 14px; margin-top: 8px;">Jelaskan dengan analogi sehari-hari, jangan teknis kaku. Dosen suka mahasiswa yang paham, bukan yang hafal!</p>
+  </div>
+  <p style="margin-top: 40px; opacity: 0.8;">Good luck! 🍀</p>
+</div>
+
+</body>
+</html>

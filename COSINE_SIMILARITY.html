@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Cosine Similarity - Penjelasan Lengkap</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', sans-serif; background: #f0fafe; color: #1a2238; line-height: 1.6; }
+.slide { max-width: 950px; margin: 30px auto; background: white; border-radius: 24px; padding: 40px; box-shadow: 0 8px 30px rgba(0,0,0,0.08); page-break-after: always; }
+h1 { font-size: 32px; color: #00B8E6; margin-bottom: 8px; }
+h2 { font-size: 22px; color: #0288D1; margin: 20px 0 12px; border-left: 5px solid #00B8E6; padding-left: 12px; }
+h3 { font-size: 17px; color: #1a2238; margin: 16px 0 8px; }
+.subtitle { color: #6D7588; font-size: 14px; margin-bottom: 24px; }
+.formula { background: linear-gradient(135deg, #1a2238, #0288D1); color: white; padding: 24px; border-radius: 16px; text-align: center; font-size: 22px; font-family: 'Cambria Math', serif; margin: 16px 0; }
+.formula sub { font-size: 14px; }
+.code { background: #1a2238; color: #7DD3F8; padding: 16px; border-radius: 12px; font-family: 'Consolas', monospace; font-size: 13px; margin: 12px 0; overflow-x: auto; white-space: pre-wrap; }
+.code .keyword { color: #FF6B9D; }
+.code .string { color: #FFC107; }
+.code .comment { color: #66BB6A; font-style: italic; }
+.card { background: linear-gradient(135deg, #E0F7FA, #ffffff); border: 1px solid #B2EBF2; border-radius: 16px; padding: 20px; margin: 12px 0; }
+.card-warning { background: linear-gradient(135deg, #FFF3E0, #ffffff); border: 1px solid #FFB74D; border-radius: 16px; padding: 20px; margin: 12px 0; }
+.card-success { background: linear-gradient(135deg, #E8F5E9, #ffffff); border: 1px solid #81C784; border-radius: 16px; padding: 20px; margin: 12px 0; }
+table { width: 100%; border-collapse: collapse; margin: 12px 0; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+th { background: #00B8E6; color: white; padding: 12px; text-align: center; font-size: 13px; }
+td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; font-size: 13px; text-align: center; }
+.highlight { background: #FFF3E0; padding: 2px 8px; border-radius: 6px; font-weight: bold; color: #E65100; }
+.step { display: flex; gap: 16px; align-items: start; margin: 16px 0; }
+.step-num { background: linear-gradient(135deg, #00B8E6, #0288D1); color: white; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; font-size: 16px; }
+.step-content { flex: 1; padding-top: 4px; }
+.matrix { display: inline-block; padding: 12px 20px; border-left: 3px solid #1a2238; border-right: 3px solid #1a2238; font-family: monospace; font-size: 14px; margin: 8px; }
+</style>
+</head>
+<body>
+
+<!-- SLIDE 1: COVER -->
+<div class="slide" style="background: linear-gradient(135deg, #00B8E6, #0288D1); color: white; text-align: center; padding: 80px 40px;">
+  <div style="font-size: 70px; margin-bottom: 20px;">📐</div>
+  <h1 style="color: white; font-size: 38px;">Cosine Similarity</h1>
+  <p style="font-size: 18px; opacity: 0.9; margin: 16px 0;">Penjelasan, Rumus, Hitungan Manual & Codingan</p>
+  <p style="margin-top: 60px; font-size: 14px; opacity: 0.8;">📚 Untuk Persiapan Sidang Skripsi</p>
+</div>
+
+<!-- SLIDE 2: APA ITU -->
+<div class="slide">
+  <h1>🤔 Apa itu Cosine Similarity?</h1>
+  <p class="subtitle">Penjelasan paling sederhana</p>
+  <div class="card">
+    <h3>📖 Definisi Resmi:</h3>
+    <p style="margin-top: 8px;">Cosine Similarity adalah metode untuk <b>mengukur kemiripan</b> antara dua vektor (kumpulan angka) dengan cara melihat <b>sudut</b> di antara mereka.</p>
+  </div>
+  <div class="card-success">
+    <h3>🍼 Bahasa Sederhana:</h3>
+    <p style="margin-top: 8px;">"Seberapa <b>SEARAH</b> dua hal ini?" — kalau searah berarti mirip, kalau berbeda arah berarti tidak mirip.</p>
+  </div>
+  <h3 style="margin-top: 20px;">📊 Hasilnya berupa angka:</h3>
+  <table>
+    <tr><th>Skor</th><th>Sudut</th><th>Arti</th><th>Contoh</th></tr>
+    <tr><td><b>1.0</b></td><td>0°</td><td>Sangat mirip</td><td>"Indomie Goreng" vs "Indomie Pedas"</td></tr>
+    <tr><td><b>0.7</b></td><td>45°</td><td>Mirip</td><td>"Indomie" vs "Sarimi"</td></tr>
+    <tr><td><b>0.0</b></td><td>90°</td><td>Tidak terkait</td><td>"Indomie" vs "Sabun Mandi"</td></tr>
+    <tr><td><b>-1.0</b></td><td>180°</td><td>Berlawanan</td><td>(Jarang terjadi di teks)</td></tr>
+  </table>
+</div>
+
+<!-- SLIDE 3: RUMUS -->
+<div class="slide">
+  <h1>📐 Rumus Matematika</h1>
+  <p class="subtitle">Yang akan ditanya dosen!</p>
+  <div class="formula">
+    cos(θ) = (A · B) / (||A|| × ||B||)
+  </div>
+  <h2>Penjelasan Komponen:</h2>
+  <div class="card">
+    <h3>1️⃣ A · B (Dot Product / Perkalian Titik)</h3>
+    <p>Kalikan tiap elemen yang sama, lalu jumlahkan semuanya.</p>
+    <div class="formula" style="font-size: 16px;">A · B = (a₁ × b₁) + (a₂ × b₂) + ... + (aₙ × bₙ)</div>
+  </div>
+  <div class="card">
+    <h3>2️⃣ ||A|| (Magnitude / Panjang Vektor)</h3>
+    <p>Akar kuadrat dari jumlah semua elemen yang dikuadratkan.</p>
+    <div class="formula" style="font-size: 16px;">||A|| = √(a₁² + a₂² + ... + aₙ²)</div>
+  </div>
+  <div class="card-warning">
+    <h3>💡 Cara Mengingat:</h3>
+    <p style="margin-top: 8px;"><b>Atas:</b> Kalikan satu-satu, lalu jumlahkan<br>
+    <b>Bawah:</b> Kuadratkan satu-satu, jumlahkan, akar kuadrat — untuk masing-masing vektor, lalu kalikan keduanya</p>
+  </div>
+</div>
+
+<!-- SLIDE 4: HITUNGAN MANUAL CONTOH KECIL -->
+<div class="slide">
+  <h1>🧮 Hitungan Manual (Contoh Kecil)</h1>
+  <p class="subtitle">Pakai vektor 3 dimensi biar mudah dipahami</p>
+  <div class="card">
+    <h3>📦 Bayangkan kita punya 2 produk:</h3>
+    <p style="margin-top: 8px;">Misalkan setiap produk diwakili oleh 3 angka: <b>[manis, asin, pedas]</b></p>
+    <table>
+      <tr><th>Produk</th><th>Manis</th><th>Asin</th><th>Pedas</th></tr>
+      <tr><td>🍜 <b>Indomie Goreng</b></td><td>0.2</td><td>0.7</td><td>0.6</td></tr>
+      <tr><td>🍜 <b>Indomie Soto</b></td><td>0.1</td><td>0.8</td><td>0.5</td></tr>
+    </table>
+  </div>
+  <h2>📝 Langkah Hitung:</h2>
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-content">
+      <h3>Hitung Dot Product (A · B)</h3>
+      <div class="formula" style="font-size: 16px;">A · B = (0.2 × 0.1) + (0.7 × 0.8) + (0.6 × 0.5)<br>= 0.02 + 0.56 + 0.30<br>= <span class="highlight">0.88</span></div>
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-content">
+      <h3>Hitung ||A|| (panjang vektor A)</h3>
+      <div class="formula" style="font-size: 16px;">||A|| = √(0.2² + 0.7² + 0.6²)<br>= √(0.04 + 0.49 + 0.36)<br>= √0.89<br>= <span class="highlight">0.943</span></div>
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-content">
+      <h3>Hitung ||B|| (panjang vektor B)</h3>
+      <div class="formula" style="font-size: 16px;">||B|| = √(0.1² + 0.8² + 0.5²)<br>= √(0.01 + 0.64 + 0.25)<br>= √0.90<br>= <span class="highlight">0.949</span></div>
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">4</div>
+    <div class="step-content">
+      <h3>Masukkan ke rumus utama</h3>
+      <div class="formula" style="font-size: 16px; background: linear-gradient(135deg, #2E7D32, #4CAF50);">
+        cos(θ) = 0.88 / (0.943 × 0.949)<br>
+        = 0.88 / 0.895<br>
+        = <span style="background: #FFD700; color: #1a2238; padding: 4px 12px; border-radius: 8px;">0.983 ≈ 98%</span>
+      </div>
+    </div>
+  </div>
+  <div class="card-success">
+    <h3>✅ Kesimpulan:</h3>
+    <p style="margin-top: 8px;">Skor 0.983 → <b>SANGAT MIRIP</b> (98%) — masuk akal karena keduanya sama-sama Indomie!</p>
+  </div>
+</div>
+
+<!-- SLIDE 5: APLIKASI DI PROJECT -->
+<div class="slide">
+  <h1>💻 Penerapan di Project (Codingan)</h1>
+  <p class="subtitle">Bagaimana cosine similarity dipakai di app Yeti Smart Retail</p>
+  
+  <h2>1. Edge Function: Generate Embedding</h2>
+  <p>Setiap produk diubah jadi vektor <b>384 dimensi</b> oleh AI:</p>
+  <div class="code"><span class="comment">// supabase/functions/generate-embedding/index.ts</span>
+<span class="keyword">const</span> session = <span class="keyword">new</span> Supabase.ai.Session(<span class="string">'gte-small'</span>);
+
+<span class="keyword">serve</span>(<span class="keyword">async</span> (req) =&gt; {
+  <span class="keyword">const</span> { input } = <span class="keyword">await</span> req.json();
+  
+  <span class="comment">// Generate vektor 384 dimensi dari teks</span>
+  <span class="keyword">const</span> embedding = <span class="keyword">await</span> session.run(input, {
+    mean_pool: <span class="keyword">true</span>,
+    normalize: <span class="keyword">true</span>  <span class="comment">// PENTING: vektor sudah dinormalisasi</span>
+  });
+  
+  <span class="keyword">return</span> Response.json({ embedding });
+});</div>
+
+  <h2>2. Simpan Embedding ke Database</h2>
+  <p>Saat admin tambah produk, embedding disimpan ke kolom <code>embedding VECTOR(384)</code>:</p>
+  <div class="code"><span class="comment">// admin_dashboard.dart</span>
+<span class="keyword">final</span> textToEmbed = <span class="string">"${nameCtrl.text} - ${descCtrl.text}"</span>;
+
+<span class="comment">// Panggil Edge Function</span>
+<span class="keyword">final</span> response = <span class="keyword">await</span> Supabase.functions.invoke(
+  <span class="string">'generate-embedding'</span>,
+  body: { <span class="string">'input'</span>: textToEmbed }
+);
+
+<span class="comment">// Simpan ke database</span>
+<span class="keyword">await</span> supabase.from(<span class="string">'products'</span>).insert({
+  <span class="string">'name'</span>: nameCtrl.text,
+  <span class="string">'embedding'</span>: response.data[<span class="string">'embedding'</span>],  <span class="comment">// 384 angka</span>
+});</div>
+</div>
+
+<!-- SLIDE 6: SQL FUNCTION -->
+<div class="slide">
+  <h1>🗄️ SQL Function di Database</h1>
+  <p class="subtitle">Cara hitung similarity langsung di PostgreSQL</p>
+  
+  <div class="code"><span class="keyword">CREATE FUNCTION</span> get_similar_products(
+  query_embedding <span class="keyword">VECTOR</span>(384),
+  match_threshold <span class="keyword">FLOAT</span> <span class="keyword">DEFAULT</span> 0.70,
+  match_count <span class="keyword">INT</span> <span class="keyword">DEFAULT</span> 50
+)
+<span class="keyword">RETURNS SETOF</span> products
+<span class="keyword">LANGUAGE</span> sql <span class="keyword">STABLE</span>
+<span class="keyword">AS</span> $$
+  <span class="keyword">SELECT</span> *
+  <span class="keyword">FROM</span> products
+  <span class="keyword">WHERE</span> embedding <span class="keyword">IS NOT NULL</span>
+    <span class="keyword">AND</span> 1 - (embedding &lt;=&gt; query_embedding) &gt;= match_threshold
+  <span class="keyword">ORDER BY</span> embedding &lt;=&gt; query_embedding
+  <span class="keyword">LIMIT</span> match_count;
+$$;</div>
+
+  <div class="card-warning">
+    <h3>⚠️ Operator <code>&lt;=&gt;</code> dari pgvector</h3>
+    <p style="margin-top: 8px;">Operator ini menghitung <b>cosine distance</b> (= 1 - cosine similarity).<br>
+    Jadi: <code>1 - (a &lt;=&gt; b)</code> = cosine similarity</p>
+  </div>
+
+  <table>
+    <tr><th>Operator</th><th>Arti</th><th>Hasil</th></tr>
+    <tr><td><code>&lt;=&gt;</code></td><td>Cosine distance</td><td>0 = sama, 2 = berlawanan</td></tr>
+    <tr><td><code>1 - (a &lt;=&gt; b)</code></td><td>Cosine similarity</td><td>1 = sama, -1 = berlawanan</td></tr>
+    <tr><td><code>&lt;-&gt;</code></td><td>Euclidean distance</td><td>0 = sama, ∞ = jauh</td></tr>
+  </table>
+</div>
+
+</body>
+</html>

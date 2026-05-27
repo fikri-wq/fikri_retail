@@ -1569,18 +1569,27 @@ class _OrderListTabState extends ConsumerState<OrderListTab> with SingleTickerPr
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(6),
-                          child: Image.network(
-                            item['image_url'] ?? '',
-                            width: 48,
-                            height: 48,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
-                              width: 48, 
-                              height: 48, 
-                              color: Colors.grey.shade200, 
-                              child: const Icon(Icons.broken_image, size: 20, color: Colors.grey)
-                            ),
-                          ),
+                          child: (item['image_url'] != null && item['image_url'].toString().startsWith('assets/'))
+                            ? Image.asset(
+                                item['image_url'],
+                                width: 48,
+                                height: 48,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => Container(
+                                  width: 48, height: 48, color: Colors.grey.shade200,
+                                  child: const Icon(Icons.broken_image, size: 20, color: Colors.grey),
+                                ),
+                              )
+                            : Image.network(
+                                item['image_url'] ?? '',
+                                width: 48,
+                                height: 48,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => Container(
+                                  width: 48, height: 48, color: Colors.grey.shade200,
+                                  child: const Icon(Icons.broken_image, size: 20, color: Colors.grey),
+                                ),
+                              ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
