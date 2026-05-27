@@ -1298,15 +1298,9 @@ class _OrderListTabState extends ConsumerState<OrderListTab> with SingleTickerPr
         Expanded(
           child: ordersAsync.when(
             data: (orders) {
-              final now = DateTime.now();
-
-              // 1. Filter orders for "Today" (created today) OR still "Active" (regardless of date, so we don't miss yesterday's active ones)
+              // 1. Filter orders: hanya yang BELUM selesai (aktif)
               final todayOrders = orders.where((o) {
-                final isToday = o.createdAt.year == now.year &&
-                    o.createdAt.month == now.month &&
-                    o.createdAt.day == now.day;
-                final isActive = o.status != 'delivered' && o.status != 'cancelled';
-                return isToday || isActive;
+                return o.status != 'delivered' && o.status != 'cancelled';
               }).toList();
 
               // 2. Filter historical delivered/cancelled orders for Monthly Reports
