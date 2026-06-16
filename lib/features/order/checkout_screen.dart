@@ -807,19 +807,17 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   final productId = item['product_id']?.toString();
                   final qty = (item['quantity'] as num?)?.toInt() ?? 1;
                   if (productId != null) {
-                    // Ambil stok saat ini
-                    final productData = await SupabaseService.client
-                        .from('products')
-                        .select('stock')
-                        .eq('id', productId)
-                        .maybeSingle();
-                    if (productData != null) {
-                      final currentStock = (productData['stock'] as num?)?.toInt() ?? 0;
-                      final newStock = (currentStock - qty).clamp(0, currentStock);
-                      await SupabaseService.client
-                          .from('products')
-                          .update({'stock': newStock})
-                          .eq('id', productId);
+                    try {
+                      // Pakai RPC function yang bypass RLS
+                      await SupabaseService.client.rpc(
+                        'decrement_product_stock',
+                        params: {
+                          'p_product_id': productId,
+                          'p_quantity': qty,
+                        },
+                      );
+                    } catch (e) {
+                      debugPrint('Gagal kurangi stok $productId: $e');
                     }
                   }
                 }
