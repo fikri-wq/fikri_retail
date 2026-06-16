@@ -41,22 +41,6 @@ class ProductDetailScreen extends ConsumerWidget {
         ),
         actions: [
           Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: CircleAvatar(
-              backgroundColor: Colors.black38,
-              child: IconButton(
-                icon: const Icon(Icons.share, color: Colors.white, size: 20),
-                onPressed: () {
-                  final formatter = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0);
-                  final text = '${product.name}\n${formatter.format(product.price)}\n\nBeli di Yeti Smart Retail!';
-                  Clipboard.setData(ClipboardData(text: text));
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Link produk disalin ke clipboard!')),
-                  );
-                },
-              ),
-            ),
-          ),
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: CircleAvatar(
