@@ -802,6 +802,28 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   'payment_receipt_url': receiptUrl,
                 });
 
+                // Kurangi stok produk sesuai quantity yang dibeli
+                for (final item in orderItems) {
+                  final productId = item['product_id']?.toString();
+                  final qty = (item['quantity'] as num?)?.toInt() ?? 1;
+                  if (productId != null) {
+                    // Ambil stok saat ini
+                    final productData = await SupabaseService.client
+                        .from('products')
+                        .select('stock')
+                        .eq('id', productId)
+                        .maybeSingle();
+                    if (productData != null) {
+                      final currentStock = (productData['stock'] as num?)?.toInt() ?? 0;
+                      final newStock = (currentStock - qty).clamp(0, currentStock);
+                      await SupabaseService.client
+                          .from('products')
+                          .update({'stock': newStock})
+                          .eq('id', productId);
+                    }
+                  }
+                }
+
                 // Jika checkout dari keranjang, hapus semua item cart
                 if (_isCartCheckout) {
                   await SupabaseService.client
