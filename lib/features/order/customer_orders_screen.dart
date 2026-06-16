@@ -423,16 +423,12 @@ class _ChatButtonWithBadge extends StatelessWidget {
       builder: (context, snapshot) {
         // Count unread: messages from admin (is_admin = true) that are not from current user
         int unreadCount = 0;
-        if (snapshot.hasData && currentUserId != null) {
-          unreadCount = snapshot.data!
-              .where((msg) => msg['sender_id'] != currentUserId)
-              .take(10) // Only check recent 10 messages
-              .length;
-          // Simple heuristic: show badge if there are messages from the other party
-          // In a real app you'd track "last_read_at" per user
-          // For now, show badge if latest message is from admin
-          if (snapshot.data!.isNotEmpty && snapshot.data!.first['sender_id'] != currentUserId) {
-            unreadCount = 1; // Show dot
+        // Badge merah hanya kalau pesan TERBARU adalah dari admin (bukan customer sendiri)
+        if (snapshot.hasData && currentUserId != null && snapshot.data!.isNotEmpty) {
+          final latestMsg = snapshot.data!.last; // pesan terakhir (urutan ascending)
+          // Badge hanya muncul kalau pengirim terakhir adalah admin, bukan customer
+          if (latestMsg['sender_id'] != currentUserId && latestMsg['is_admin'] == true) {
+            unreadCount = 1;
           } else {
             unreadCount = 0;
           }

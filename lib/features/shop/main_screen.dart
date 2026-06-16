@@ -91,11 +91,16 @@ class _PesananBadgeIcon extends StatelessWidget {
               .from('order_chats')
               .select()
               .inFilter('order_id', orderIds)
-              .neq('sender_id', userId)
               .order('created_at', ascending: false)
               .limit(1),
           builder: (context, chatSnapshot) {
-            final hasUnread = chatSnapshot.hasData && chatSnapshot.data!.isNotEmpty;
+            // Badge merah hanya kalau pesan TERBARU adalah dari admin (bukan dari customer sendiri)
+            bool hasUnread = false;
+            if (chatSnapshot.hasData && chatSnapshot.data!.isNotEmpty) {
+              final latestMsg = chatSnapshot.data!.first;
+              // Cek kalau pengirim pesan terakhir adalah admin (bukan user sendiri)
+              hasUnread = latestMsg['sender_id'] != userId && latestMsg['is_admin'] == true;
+            }
 
             return Stack(
               clipBehavior: Clip.none,
