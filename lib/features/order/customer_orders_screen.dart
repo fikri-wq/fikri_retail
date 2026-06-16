@@ -425,7 +425,7 @@ class _ChatButtonWithBadge extends StatelessWidget {
         int unreadCount = 0;
         // Badge merah hanya kalau pesan TERBARU adalah dari admin (bukan customer sendiri)
         if (snapshot.hasData && currentUserId != null && snapshot.data!.isNotEmpty) {
-          final latestMsg = snapshot.data!.last; // pesan terakhir (urutan ascending)
+          final latestMsg = snapshot.data!.first; // ascending: false → index 0 = terbaru
           // Badge hanya muncul kalau pengirim terakhir adalah admin, bukan customer
           if (latestMsg['sender_id'] != currentUserId && latestMsg['is_admin'] == true) {
             unreadCount = 1;
