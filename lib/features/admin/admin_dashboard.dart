@@ -1496,59 +1496,70 @@ class _OrderListTabState extends ConsumerState<OrderListTab> with SingleTickerPr
   }
 
   void _downloadReport(String monthName, List<OrderModel> orders) {
-    final successfulOrders = orders.where((o) => o.status == 'delivered').toList();
-    final cancelledOrders = orders.where((o) => o.status == 'cancelled').toList();
-    final totalRevenue = successfulOrders.fold<double>(0, (sum, o) => sum + o.totalAmount);
+    try {
+      final successfulOrders = orders.where((o) => o.status == 'delivered').toList();
+      final cancelledOrders = orders.where((o) => o.status == 'cancelled').toList();
+      final totalRevenue = successfulOrders.fold<double>(0, (sum, o) => sum + o.totalAmount);
 
-    // Build CSV content
-    final buffer = StringBuffer();
-    
-    // Header info
-    buffer.writeln('LAPORAN PENJUALAN - YETI SMART RETAIL');
-    buffer.writeln('Periode: $monthName');
-    buffer.writeln('Tanggal Cetak: ${DateFormat('dd MMMM yyyy HH:mm', 'id_ID').format(DateTime.now())}');
-    buffer.writeln('');
-    buffer.writeln('RINGKASAN');
-    buffer.writeln('Total Transaksi,${orders.length}');
-    buffer.writeln('Pesanan Selesai,${successfulOrders.length}');
-    buffer.writeln('Pesanan Batal,${cancelledOrders.length}');
-    buffer.writeln('Total Omset,Rp ${totalRevenue.toInt()}');
-    buffer.writeln('');
-    buffer.writeln('DETAIL TRANSAKSI');
-    buffer.writeln('No,Tanggal,Customer,Status,Metode,Items,Total');
-    
-    for (var i = 0; i < orders.length; i++) {
-      final o = orders[i];
-      final date = DateFormat('dd/MM/yyyy HH:mm').format(o.createdAt);
-      final customer = (o.customerName ?? 'Customer').replaceAll(',', ' ');
-      final status = o.status.toUpperCase();
-      final metode = o.address?.contains('Delivery') == true ? 'Delivery' : 'Pick Up';
-      
-      // Items summary
-      String items = '-';
-      if (o.items != null && o.items!.isNotEmpty) {
-        items = o.items!.map((item) => '${item['name']} x${item['quantity']}').join(' | ');
-        items = items.replaceAll(',', ';'); // Escape commas for CSV
+      final now = DateTime.now();
+      final nowStr = '${now.day.toString().padLeft(2,'0')}/${now.month.toString().padLeft(2,'0')}/${now.year} ${now.hour.toString().padLeft(2,'0')}:${now.minute.toString().padLeft(2,'0')}';
+
+      // Build CSV content
+      final buffer = StringBuffer();
+      buffer.writeln('LAPORAN PENJUALAN - YETI SMART RETAIL');
+      buffer.writeln('Periode:,$monthName');
+      buffer.writeln('Tanggal Cetak:,$nowStr');
+      buffer.writeln('');
+      buffer.writeln('RINGKASAN');
+      buffer.writeln('Total Transaksi,${orders.length}');
+      buffer.writeln('Pesanan Selesai,${successfulOrders.length}');
+      buffer.writeln('Pesanan Batal,${cancelledOrders.length}');
+      buffer.writeln('Total Omset,Rp ${totalRevenue.toInt()}');
+      buffer.writeln('');
+      buffer.writeln('DETAIL TRANSAKSI');
+      buffer.writeln('No,Tanggal,Customer,Status,Metode,Items,Total');
+
+      for (var i = 0; i < orders.length; i++) {
+        final o = orders[i];
+        final d = o.createdAt;
+        final date = '${d.day.toString().padLeft(2,'0')}/${d.month.toString().padLeft(2,'0')}/${d.year} ${d.hour.toString().padLeft(2,'0')}:${d.minute.toString().padLeft(2,'0')}';
+        final customer = (o.customerName ?? 'Customer').replaceAll(',', ' ');
+        final status = o.status.toUpperCase();
+        final metode = o.address?.contains('Delivery') == true ? 'Delivery' : 'Pick Up';
+
+        String items = '-';
+        if (o.items != null && o.items!.isNotEmpty) {
+          items = o.items!.map((item) => '${item['name']} x${item['quantity']}').join(' | ');
+          items = items.replaceAll(',', ';');
+        }
+
+        buffer.writeln('${i + 1},$date,$customer,$status,$metode,"$items",Rp ${o.totalAmount.toInt()}');
       }
-      
-      buffer.writeln('${i + 1},$date,$customer,$status,$metode,"$items",Rp ${o.totalAmount.toInt()}');
+
+      // Download sebagai CSV via Web API
+      final bytes = utf8.encode(buffer.toString());
+      final blob = html.Blob([bytes], 'text/csv;charset=utf-8');
+      final url = html.Url.createObjectUrlFromBlob(blob);
+      html.AnchorElement(href: url)
+        ..setAttribute('download', 'Laporan_${monthName.replaceAll(' ', '_')}.csv')
+        ..click();
+      html.Url.revokeObjectUrl(url);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ Laporan $monthName berhasil didownload!'),
+            backgroundColor: AppColors.primary,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal download: $e')),
+        );
+      }
     }
-
-    // Download as CSV file
-    final bytes = utf8.encode(buffer.toString());
-    final blob = html.Blob([bytes], 'text/csv;charset=utf-8');
-    final url = html.Url.createObjectUrlFromBlob(blob);
-    final anchor = html.AnchorElement(href: url)
-      ..setAttribute('download', 'Laporan_${monthName.replaceAll(' ', '_')}.csv')
-      ..click();
-    html.Url.revokeObjectUrl(url);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('✅ Laporan $monthName berhasil didownload!'),
-        backgroundColor: AppColors.primary,
-      ),
-    );
   }
 
   Widget _buildOrderCard(OrderModel o) {
