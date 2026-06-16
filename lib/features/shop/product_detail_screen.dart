@@ -146,29 +146,6 @@ class ProductDetailScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
 
-            // Pengiriman Info (Dummy)
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                children: [
-                  const Icon(Icons.local_shipping_outlined, color: Colors.teal),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Gratis Ongkir', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                        Text('Dikirim ke Alamat Anda - Ongkos Kirim Rp0', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
-                      ],
-                    ),
-                  ),
-                  const Icon(Icons.chevron_right, color: Colors.grey),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-
             // Deskripsi
             Container(
               color: Colors.white,
