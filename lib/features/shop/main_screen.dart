@@ -85,20 +85,18 @@ class _PesananBadgeIcon extends StatelessWidget {
 
         final orderIds = ordersSnapshot.data!.map((o) => o['id'].toString()).toList();
 
-        // Cek chat terbaru dari semua order milik user
-        return FutureBuilder<List<Map<String, dynamic>>>(
-          future: SupabaseService.client
+        // Cek chat terbaru dari semua order milik user (realtime stream)
+        return StreamBuilder<List<Map<String, dynamic>>>(
+          stream: SupabaseService.client
               .from('order_chats')
-              .select()
+              .stream(primaryKey: ['id'])
               .inFilter('order_id', orderIds)
-              .order('created_at', ascending: false)
-              .limit(1),
+              .order('created_at', ascending: false),
           builder: (context, chatSnapshot) {
             // Badge merah hanya kalau pesan TERBARU adalah dari admin (bukan dari customer sendiri)
             bool hasUnread = false;
             if (chatSnapshot.hasData && chatSnapshot.data!.isNotEmpty) {
               final latestMsg = chatSnapshot.data!.first;
-              // Cek kalau pengirim pesan terakhir adalah admin (bukan user sendiri)
               hasUnread = latestMsg['sender_id'] != userId && latestMsg['is_admin'] == true;
             }
 
