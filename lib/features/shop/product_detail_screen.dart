@@ -1,12 +1,25 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../models/product_model.dart';
+import '../../services/supabase_service.dart';
 import 'product_provider.dart';
 import 'cart_provider.dart';
 import 'cart_screen.dart';
 import '../order/checkout_screen.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+
+// Stream provider untuk satu produk — stok update realtime
+final singleProductProvider = StreamProvider.family<Product, String>((ref, productId) {
+  return SupabaseService.client
+      .from('products')
+      .stream(primaryKey: ['id'])
+      .eq('id', productId)
+      .map((data) {
+        if (data.isEmpty) throw Exception('Produk tidak ditemukan');
+        return Product.fromMap(data.first);
+      });
+});
 
 class ProductDetailScreen extends ConsumerWidget {
   final Product product;
@@ -18,6 +31,14 @@ class ProductDetailScreen extends ConsumerWidget {
       locale: 'id_ID',
       symbol: 'Rp',
       decimalDigits: 0,
+    );
+
+    // Watch realtime data produk — stok dan harga selalu terbaru
+    final liveProductAsync = ref.watch(singleProductProvider(product.id));
+    final liveProduct = liveProductAsync.when(
+      data: (p) => p,
+      loading: () => product, // fallback ke data awal saat loading
+      error: (_, __) => product, // fallback ke data awal jika error
     );
 
     final similarProductsAsync = ref.watch(similarProductsProvider(product.id));
@@ -66,14 +87,14 @@ class ProductDetailScreen extends ConsumerWidget {
             // Gambar Produk
             ConstrainedBox(
               constraints: const BoxConstraints(maxHeight: 300),
-              child: (product.imageUrl != null && product.imageUrl!.startsWith('assets/'))
+              child: (liveProduct.imageUrl != null && liveProduct.imageUrl!.startsWith('assets/'))
                   ? Image.asset(
-                      product.imageUrl!,
+                      liveProduct.imageUrl!,
                       width: double.infinity,
                       fit: BoxFit.contain,
                     )
                   : CachedNetworkImage(
-                      imageUrl: product.imageUrl ?? 'https://via.placeholder.com/400',
+                      imageUrl: liveProduct.imageUrl ?? 'https://via.placeholder.com/400',
                       width: double.infinity,
                       fit: BoxFit.contain,
                     ),
@@ -89,7 +110,7 @@ class ProductDetailScreen extends ConsumerWidget {
                   Row(
                     children: [
                       Text(
-                        currencyFormatter.format(product.price),
+                        currencyFormatter.format(liveProduct.price),
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -100,7 +121,7 @@ class ProductDetailScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    product.name,
+                    liveProduct.name,
                     style: const TextStyle(fontSize: 16, height: 1.3),
                   ),
                 ],
@@ -124,13 +145,18 @@ class ProductDetailScreen extends ConsumerWidget {
                   Row(
                     children: [
                       const SizedBox(width: 100, child: Text('Stok', style: TextStyle(color: Colors.grey, fontSize: 13))),
-                      Text('${product.stock}', style: const TextStyle(fontSize: 13)),
+                      // Stok realtime — update otomatis saat ada pembelian
+                      liveProductAsync.when(
+                        data: (p) => Text('${p.stock}', style: const TextStyle(fontSize: 13)),
+                        loading: () => Text('${product.stock}', style: const TextStyle(fontSize: 13)),
+                        error: (_, __) => Text('${product.stock}', style: const TextStyle(fontSize: 13)),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 16),
                   const Text('Deskripsi:', style: TextStyle(color: Colors.grey, fontSize: 13)),
                   const SizedBox(height: 4),
-                  Text(product.description, style: const TextStyle(fontSize: 13, height: 1.5)),
+                  Text(liveProduct.description, style: const TextStyle(fontSize: 13, height: 1.5)),
                 ],
               ),
             ),
@@ -179,7 +205,7 @@ class ProductDetailScreen extends ConsumerWidget {
       ),
           ),
         ),
-      bottomNavigationBar: _buildBottomAction(context, ref),
+      bottomNavigationBar: _buildBottomAction(context, ref, liveProduct),
     );
   }
 
@@ -246,7 +272,7 @@ class ProductDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildBottomAction(BuildContext context, WidgetRef ref) {
+  Widget _buildBottomAction(BuildContext context, WidgetRef ref, Product liveProduct) {
     return SafeArea(
       child: Container(
         height: 60,
@@ -261,7 +287,7 @@ class ProductDetailScreen extends ConsumerWidget {
               flex: 1,
               child: InkWell(
                 onTap: () async {
-                  await addToCart(product.id);
+                  await addToCart(liveProduct.id);
                   ref.invalidate(cartProvider);
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ditambahkan ke Keranjang', style: TextStyle(fontSize: 12))));
@@ -285,7 +311,7 @@ class ProductDetailScreen extends ConsumerWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => CheckoutScreen(product: product),
+                      builder: (context) => CheckoutScreen(product: liveProduct),
                     ),
                   );
                 },
