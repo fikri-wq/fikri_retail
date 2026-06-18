@@ -26,12 +26,15 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     decimalDigits: 0,
   );
 
-  // Inisialisasi seleksi saat data pertama kali dimuat
+  bool _initialized = false;
+
+  // Inisialisasi seleksi HANYA sekali saat data pertama kali dimuat
   void _initSelection(List<Map<String, dynamic>> items) {
-    if (_selectedIds.isEmpty && items.isNotEmpty) {
+    if (!_initialized && items.isNotEmpty) {
       for (var item in items) {
         _selectedIds.add(item['id'].toString());
       }
+      _initialized = true;
     }
   }
 

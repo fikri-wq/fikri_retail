@@ -8866,6 +8866,7 @@ rV:function rV(a){this.a=a},
 YZ:function YZ(a,b){var _=this
 _.w=a
 _.x=b
+_.y=!1
 _.d=$
 _.c=_.a=null},
 aCs:function aCs(a,b){this.a=a
@@ -51932,8 +51933,9 @@ $S:136}
 A.rV.prototype={
 a8(){return new A.YZ(A.aM(t.N),A.y_(0,"id_ID","Rp"))}}
 A.YZ.prototype={
-anB(a){var s,r=this.w
-if(r.a===0&&J.h5(a))for(s=J.aK(a);s.t();)r.D(0,J.bK(J.a_(s.gK(s),"id")))},
+anB(a){var s,r
+if(!this.y&&J.h5(a)){for(s=J.aK(a),r=this.w;s.t();)r.D(0,J.bK(J.a_(s.gK(s),"id")))
+this.y=!0}},
 auf(a){this.N(new A.aCs(this,a))},
 auh(a){this.N(new A.aCt(this,a))},
 af4(a){var s,r,q,p,o
