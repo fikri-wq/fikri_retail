@@ -1,6 +1,5 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:flutter/services.dart';
 import '../../models/product_model.dart';
 import 'product_provider.dart';
 import 'cart_provider.dart';
@@ -40,7 +39,6 @@ class ProductDetailScreen extends ConsumerWidget {
           ),
         ),
         actions: [
-          Padding(
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: CircleAvatar(
@@ -98,32 +96,12 @@ class ProductDetailScreen extends ConsumerWidget {
                           color: Theme.of(context).colorScheme.primary,
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                        child: Text('Garansi Harga Termurah', style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 10)),
-                      )
                     ],
                   ),
                   const SizedBox(height: 8),
                   Text(
                     product.name,
                     style: const TextStyle(fontSize: 16, height: 1.3),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      const Icon(Icons.star, color: Colors.amber, size: 16),
-                      const Text(' 4.9', style: TextStyle(fontSize: 12)),
-                      const SizedBox(width: 8),
-                      Container(width: 1, height: 12, color: Colors.grey),
-                      const SizedBox(width: 8),
-                      const Text('10rb+ Terjual', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                    ],
                   ),
                 ],
               ),

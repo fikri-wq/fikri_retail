@@ -17,17 +17,7 @@ import '../../models/order_model.dart';
 import '../../seed_data.dart'; // IMPORT SEED DATA
 import '../../seed_data_new.dart'; // IMPORT SEED DATA BARU (414 produk)
 import '../../main.dart' show AppColors, WavePatternPainter;
-
-// Provider untuk mengambil semua user (Hanya untuk Admin)
-final allUsersProvider = FutureProvider<List<Map<String, dynamic>>>((
-  ref,
-) async {
-  final response = await SupabaseService.client
-      .from('profiles')
-      .select()
-      .order('full_name', ascending: true);
-  return List<Map<String, dynamic>>.from(response);
-});
+import 'user_management_tab.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -111,6 +101,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
       case 0:
         return const ProductListTab();
       case 1:
+        return const UserManagementTab();
+      case 2:
         return const OrderListTab();
       default:
         return const ProductListTab();
@@ -139,7 +131,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
           ],
         ),
         title: Text(
-          _currentIndex == 0 ? 'Kelola Produk' : 'Daftar Pesanan',
+          _currentIndex == 0
+              ? 'Kelola Produk'
+              : _currentIndex == 1
+                  ? 'Kelola User'
+                  : 'Daftar Pesanan',
           style: GoogleFonts.poppins(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -204,6 +200,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
               icon: Icon(Icons.inventory_2_outlined),
               activeIcon: Icon(Icons.inventory_2_rounded),
               label: 'Produk',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.group_outlined),
+              activeIcon: Icon(Icons.group_rounded),
+              label: 'User',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.receipt_long_outlined),
