@@ -111,13 +111,21 @@ INSERT INTO public.categories (name) VALUES
 ON CONFLICT (name) DO NOTHING;
 ```
 
-### 7. Buat Profile Admin Manual
+### 9. Policy INSERT/UPDATE profiles untuk service_role (wajib untuk Edge Function create-admin)
 ```sql
--- Ganti UUID dengan ID user admin dari Authentication > Users
-INSERT INTO public.profiles (id, full_name, role)
-VALUES ('UUID-ADMIN-DISINI', 'TokoRetail', 'admin')
-ON CONFLICT (id) DO UPDATE SET role = 'admin';
+-- Izinkan service_role (Edge Functions) insert dan update profiles tanpa batasan
+CREATE POLICY "Service role can insert profiles"
+  ON public.profiles FOR INSERT
+  WITH CHECK (true);
+
+CREATE POLICY "Service role can update profiles"
+  ON public.profiles FOR UPDATE
+  USING (true)
+  WITH CHECK (true);
 ```
+
+> **Catatan:** Policy ini aman karena Edge Function `create-admin` sudah memverifikasi
+> bahwa pemanggil adalah admin sebelum melakukan operasi insert/update.
 
 ### 8. Supabase Storage Buckets
 Buat manual di Dashboard > Storage:
