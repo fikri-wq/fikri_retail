@@ -572,21 +572,6 @@ class HomeScreen extends ConsumerWidget {
                         ],
                       ),
                       const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          const Icon(Icons.star_rounded, size: 12, color: AppColors.accent),
-                          const SizedBox(width: 2),
-                          Text(
-                            '4.8',
-                            style: GoogleFonts.poppins(fontSize: 10, color: AppColors.textMuted),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '| ${product.stock}+ terjual',
-                            style: GoogleFonts.poppins(fontSize: 10, color: AppColors.textMuted),
-                          ),
-                        ],
-                      ),
                       const Spacer(),
                       Container(
                         width: double.infinity,
