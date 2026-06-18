@@ -9,22 +9,79 @@ import '../order/checkout_screen.dart';
 import '../../models/product_model.dart';
 import 'product_detail_screen.dart';
 
-class CartScreen extends ConsumerWidget {
+class CartScreen extends ConsumerStatefulWidget {
   const CartScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CartScreen> createState() => _CartScreenState();
+}
+
+class _CartScreenState extends ConsumerState<CartScreen> {
+  // Set berisi cart item ID yang sedang dipilih
+  final Set<String> _selectedIds = {};
+
+  final formatter = NumberFormat.currency(
+    locale: 'id_ID',
+    symbol: 'Rp',
+    decimalDigits: 0,
+  );
+
+  // Inisialisasi seleksi saat data pertama kali dimuat
+  void _initSelection(List<Map<String, dynamic>> items) {
+    if (_selectedIds.isEmpty && items.isNotEmpty) {
+      for (var item in items) {
+        _selectedIds.add(item['id'].toString());
+      }
+    }
+  }
+
+  void _toggleItem(String id) {
+    setState(() {
+      if (_selectedIds.contains(id)) {
+        _selectedIds.remove(id);
+      } else {
+        _selectedIds.add(id);
+      }
+    });
+  }
+
+  void _toggleSelectAll(List<Map<String, dynamic>> items) {
+    setState(() {
+      if (_selectedIds.length == items.length) {
+        // Semua terpilih → deselect semua
+        _selectedIds.clear();
+      } else {
+        // Pilih semua
+        for (var item in items) {
+          _selectedIds.add(item['id'].toString());
+        }
+      }
+    });
+  }
+
+  double _calculateTotal(List<Map<String, dynamic>> items) {
+    double total = 0;
+    for (var item in items) {
+      if (_selectedIds.contains(item['id'].toString())) {
+        total += (item['products']['price'] * item['quantity']);
+      }
+    }
+    return total;
+  }
+
+  List<Map<String, dynamic>> _getSelectedItems(List<Map<String, dynamic>> items) {
+    return items.where((item) => _selectedIds.contains(item['id'].toString())).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final cartAsync = ref.watch(cartProvider);
-    final formatter = NumberFormat.currency(
-      locale: 'id_ID',
-      symbol: 'Rp',
-      decimalDigits: 0,
-    );
 
     return Scaffold(
       backgroundColor: Colors.grey[200],
       appBar: AppBar(
-        title: const Text('Keranjang Saya', style: TextStyle(color: Colors.black87, fontSize: 18)),
+        title: const Text('Keranjang Saya',
+            style: TextStyle(color: Colors.black87, fontSize: 18)),
         backgroundColor: Colors.white,
         elevation: 0.5,
         iconTheme: const IconThemeData(color: Colors.black87),
@@ -35,32 +92,53 @@ class CartScreen extends ConsumerWidget {
             return _buildEmptyCart();
           }
 
-          double total = 0;
-          for (var item in items) {
-            total += (item['products']['price'] * item['quantity']);
-          }
+          // Inisialisasi semua item terpilih saat pertama load
+          _initSelection(items);
+
+          final selectedItems = _getSelectedItems(items);
+          final total = _calculateTotal(items);
+          final isAllSelected = _selectedIds.length == items.length;
 
           return Column(
             children: [
               Expanded(
-                child: _buildCartListWithRecommendations(context, ref, items, formatter),
+                child: _buildCartListWithRecommendations(context, items),
               ),
-              // Bottom Action
+              // Bottom Action Bar
               Container(
                 decoration: const BoxDecoration(
                   color: Colors.white,
-                  boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, -2))],
+                  boxShadow: [
+                    BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 4,
+                        offset: Offset(0, -2))
+                  ],
                 ),
                 child: Row(
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Row(
-                        children: [
-                           Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary, size: 20),
-                           const SizedBox(width: 8),
-                           const Text('Semua', style: TextStyle(fontSize: 12)),
-                        ],
+                    // Tombol "Semua" dengan centang interaktif
+                    InkWell(
+                      onTap: () => _toggleSelectAll(items),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        child: Row(
+                          children: [
+                            Icon(
+                              isAllSelected
+                                  ? Icons.check_circle
+                                  : Icons.check_circle_outline,
+                              color: isAllSelected
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Colors.grey,
+                              size: 22,
+                            ),
+                            const SizedBox(width: 8),
+                            const Text('Semua',
+                                style: TextStyle(fontSize: 12)),
+                          ],
+                        ),
                       ),
                     ),
                     Expanded(
@@ -73,10 +151,16 @@ class CartScreen extends ConsumerWidget {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
-                                const Text('Total: ', style: TextStyle(fontSize: 14)),
+                                const Text('Total: ',
+                                    style: TextStyle(fontSize: 14)),
                                 Text(
                                   formatter.format(total),
-                                  style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 16, fontWeight: FontWeight.bold),
+                                  style: TextStyle(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .primary,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold),
                                 ),
                               ],
                             ),
@@ -84,20 +168,41 @@ class CartScreen extends ConsumerWidget {
                         ),
                       ),
                     ),
+                    // Tombol Checkout
                     InkWell(
-                      onTap: () {
-                         if (items.isEmpty) return; // cannot checkout empty cart
-                         Navigator.push(
-                           context,
-                           MaterialPageRoute(builder: (context) => CheckoutScreen(
-                             cartItems: items,
-                           )),
-                         ).then((_) => ref.invalidate(cartProvider));
-                      },
+                      onTap: selectedItems.isEmpty
+                          ? () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text(
+                                        'Pilih minimal 1 produk untuk checkout')),
+                              );
+                            }
+                          : () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => CheckoutScreen(
+                                    cartItems: selectedItems,
+                                  ),
+                                ),
+                              ).then((_) => ref.invalidate(cartProvider));
+                            },
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 18),
-                        color: Theme.of(context).colorScheme.primary,
-                        child: const Text('Checkout', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 32, vertical: 18),
+                        color: selectedItems.isEmpty
+                            ? Colors.grey
+                            : Theme.of(context).colorScheme.primary,
+                        child: Text(
+                          selectedItems.isEmpty
+                              ? 'Checkout'
+                              : 'Checkout (${selectedItems.length})',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14),
+                        ),
                       ),
                     ),
                   ],
@@ -106,7 +211,9 @@ class CartScreen extends ConsumerWidget {
             ],
           );
         },
-        loading: () => Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary)),
+        loading: () => Center(
+            child: CircularProgressIndicator(
+                color: Theme.of(context).colorScheme.primary)),
         error: (err, stack) => Center(child: Text('Error: $err')),
       ),
     );
@@ -117,25 +224,27 @@ class CartScreen extends ConsumerWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.remove_shopping_cart_outlined, size: 80, color: Colors.grey[300]),
+          Icon(Icons.remove_shopping_cart_outlined,
+              size: 80, color: Colors.grey[300]),
           const SizedBox(height: 16),
-          Text('Keranjang belanja Anda kosong', style: TextStyle(color: Colors.grey[600], fontSize: 14)),
+          Text('Keranjang belanja Anda kosong',
+              style: TextStyle(color: Colors.grey[600], fontSize: 14)),
         ],
       ),
     );
   }
 
   Widget _buildCartListWithRecommendations(
-    BuildContext context, WidgetRef ref, List<Map<String, dynamic>> items, NumberFormat formatter,
+    BuildContext context,
+    List<Map<String, dynamic>> items,
   ) {
-    // Ambil product IDs dari keranjang untuk rekomendasi AI
     final cartProductIds = items
         .map((item) => item['product_id']?.toString() ?? '')
         .where((id) => id.isNotEmpty)
         .toList();
 
-    // Join sebagai String agar Riverpod family key stabil (List baru tiap rebuild = infinite loop)
-    final recommendationsAsync = ref.watch(cartRecommendationsProvider(cartProductIds.join(',')));
+    final recommendationsAsync = ref.watch(
+        cartRecommendationsProvider(cartProductIds.join(',')));
 
     return ListView(
       padding: const EdgeInsets.only(top: 8),
@@ -143,6 +252,9 @@ class CartScreen extends ConsumerWidget {
         // === DAFTAR ITEM KERANJANG ===
         ...items.map((item) {
           final product = item['products'];
+          final itemId = item['id'].toString();
+          final isSelected = _selectedIds.contains(itemId);
+
           return Container(
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.all(12),
@@ -150,31 +262,69 @@ class CartScreen extends ConsumerWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary, size: 20),
-                const SizedBox(width: 12),
-                (product['image_url'] != null && product['image_url'].toString().startsWith('assets/'))
-                    ? Image.asset(
-                        product['image_url'],
-                        width: 80,
-                        height: 80,
-                        fit: BoxFit.cover,
-                      )
-                    : Image.network(
-                        product['image_url'] ?? 'https://via.placeholder.com/150',
-                        width: 80,
-                        height: 80,
-                        fit: BoxFit.cover,
+                // Centang interaktif per item
+                GestureDetector(
+                  onTap: () => _toggleItem(itemId),
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 4, right: 12),
+                    child: Icon(
+                      isSelected
+                          ? Icons.check_circle
+                          : Icons.check_circle_outline,
+                      color: isSelected
+                          ? Theme.of(context).colorScheme.primary
+                          : Colors.grey,
+                      size: 22,
+                    ),
+                  ),
+                ),
+                // Gambar produk (klik → buka detail)
+                GestureDetector(
+                  onTap: () {
+                    final productModel = Product.fromMap({
+                      'id': item['product_id'],
+                      ...Map<String, dynamic>.from(product),
+                    });
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            ProductDetailScreen(product: productModel),
                       ),
+                    );
+                  },
+                  child: (product['image_url'] != null &&
+                          product['image_url'].toString().startsWith('assets/'))
+                      ? Image.asset(
+                          product['image_url'],
+                          width: 80,
+                          height: 80,
+                          fit: BoxFit.cover,
+                        )
+                      : Image.network(
+                          product['image_url'] ??
+                              'https://via.placeholder.com/150',
+                          width: 80,
+                          height: 80,
+                          fit: BoxFit.cover,
+                        ),
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(product['name'], style: const TextStyle(fontSize: 14), maxLines: 2, overflow: TextOverflow.ellipsis),
+                      Text(product['name'],
+                          style: const TextStyle(fontSize: 14),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis),
                       const SizedBox(height: 8),
                       Text(
                         formatter.format(product['price']),
-                        style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold, fontSize: 14),
+                        style: TextStyle(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14),
                       ),
                     ],
                   ),
@@ -183,13 +333,21 @@ class CartScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.delete_outline, color: Colors.grey),
+                      icon:
+                          const Icon(Icons.delete_outline, color: Colors.grey),
                       onPressed: () async {
-                        await SupabaseService.client.from('carts').delete().eq('id', item['id']);
+                        await SupabaseService.client
+                            .from('carts')
+                            .delete()
+                            .eq('id', item['id']);
+                        // Hapus dari seleksi juga
+                        setState(() => _selectedIds.remove(itemId));
                         ref.invalidate(cartProvider);
                       },
                     ),
-                    Text('x${item['quantity']}', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                    Text('x${item['quantity']}',
+                        style:
+                            const TextStyle(color: Colors.grey, fontSize: 12)),
                   ],
                 )
               ],
@@ -209,11 +367,15 @@ class CartScreen extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
                   children: [
-                    Icon(Icons.auto_awesome, color: Theme.of(context).colorScheme.primary, size: 20),
+                    Icon(Icons.auto_awesome,
+                        color: Theme.of(context).colorScheme.primary, size: 20),
                     const SizedBox(width: 8),
                     Text(
                       'Rekomendasi Untukmu',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Theme.of(context).colorScheme.primary),
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: Theme.of(context).colorScheme.primary),
                     ),
                   ],
                 ),
@@ -225,7 +387,9 @@ class CartScreen extends ConsumerWidget {
                   data: (recommendations) {
                     if (recommendations.isEmpty) {
                       return const Center(
-                        child: Text('Belum ada rekomendasi yang cocok.', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        child: Text('Belum ada rekomendasi yang cocok.',
+                            style:
+                                TextStyle(fontSize: 12, color: Colors.grey)),
                       );
                     }
                     final displayItems = recommendations.take(20).toList();
@@ -234,12 +398,17 @@ class CartScreen extends ConsumerWidget {
                       scrollDirection: Axis.horizontal,
                       itemCount: displayItems.length,
                       itemBuilder: (context, index) {
-                        return _buildRecommendationCard(context, ref, displayItems[index], formatter);
+                        return _buildRecommendationCard(
+                            context, displayItems[index]);
                       },
                     );
                   },
-                  loading: () => Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary)),
-                  error: (err, stack) => const Center(child: Text('Gagal memuat rekomendasi', style: TextStyle(fontSize: 12))),
+                  loading: () => Center(
+                      child: CircularProgressIndicator(
+                          color: Theme.of(context).colorScheme.primary)),
+                  error: (err, stack) => const Center(
+                      child: Text('Gagal memuat rekomendasi',
+                          style: TextStyle(fontSize: 12))),
                 ),
               ),
             ],
@@ -249,12 +418,13 @@ class CartScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildRecommendationCard(BuildContext context, WidgetRef ref, Product product, NumberFormat formatter) {
+  Widget _buildRecommendationCard(BuildContext context, Product product) {
     return InkWell(
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => ProductDetailScreen(product: product)),
+          MaterialPageRoute(
+              builder: (context) => ProductDetailScreen(product: product)),
         );
       },
       child: Container(
@@ -269,21 +439,26 @@ class CartScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
-              child: (product.imageUrl != null && product.imageUrl!.startsWith('assets/'))
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(8)),
+              child: (product.imageUrl != null &&
+                      product.imageUrl!.startsWith('assets/'))
                   ? Image.asset(
                       product.imageUrl!,
                       height: 110,
                       width: 140,
                       fit: BoxFit.cover,
-                      errorBuilder: (context, url, err) => const Icon(Icons.broken_image),
+                      errorBuilder: (context, url, err) =>
+                          const Icon(Icons.broken_image),
                     )
                   : CachedNetworkImage(
-                      imageUrl: product.imageUrl ?? 'https://via.placeholder.com/150',
+                      imageUrl: product.imageUrl ??
+                          'https://via.placeholder.com/150',
                       height: 110,
                       width: 140,
                       fit: BoxFit.cover,
-                      errorWidget: (context, url, err) => const Icon(Icons.broken_image),
+                      errorWidget: (context, url, err) =>
+                          const Icon(Icons.broken_image),
                     ),
             ),
             Expanded(
@@ -317,17 +492,23 @@ class CartScreen extends ConsumerWidget {
                           ref.invalidate(cartProvider);
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Ditambahkan ke keranjang'), duration: Duration(seconds: 1)),
+                              const SnackBar(
+                                  content: Text('Ditambahkan ke keranjang'),
+                                  duration: Duration(seconds: 1)),
                             );
                           }
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          backgroundColor:
+                              Theme.of(context).colorScheme.primary,
                           foregroundColor: Colors.white,
                           padding: EdgeInsets.zero,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(6)),
                         ),
-                        child: const Text('+ Keranjang', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                        child: const Text('+ Keranjang',
+                            style: TextStyle(
+                                fontSize: 10, fontWeight: FontWeight.bold)),
                       ),
                     ),
                   ],
