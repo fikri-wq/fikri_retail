@@ -61,8 +61,6 @@ serve(async (req: Request) => {
     }
 
     // ── 3. Buat user baru pakai Admin API (service_role) ──────────────────
-    // auth.admin.createUser() TIDAK memicu trigger handle_new_user
-    // jadi kita handle insert profiles manual di sini
     const adminClient = createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
@@ -93,49 +91,36 @@ serve(async (req: Request) => {
       );
     }
 
-    // ── 4. Insert/update profiles langsung via SQL (bypass RLS sepenuhnya) ─
-    // Menggunakan rpc dengan fungsi SECURITY DEFINER yang akan kita buat,
-    // ATAU pakai Postgres REST endpoint dengan service_role yang bypass RLS.
+    // ── 4. Tunggu trigger handle_new_user selesai insert ke profiles ──────
+    // Trigger DB berjalan async setelah createUser, kita tunggu 1.5 detik
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+
+    // ── 5. Update role menjadi admin via SQL langsung (BYPASS RLS) ────────
+    // Menggunakan Postgres connection string via REST dengan service_role
+    // yang secara spesifikasi HARUS bypass RLS sepenuhnya.
     //
-    // Catatan: createClient dengan serviceRoleKey + schema postgres
-    // otomatis bypass RLS untuk operasi DML.
-    // Jika masih gagal, berarti ada policy EXPLICIT DENY yang memblok INSERT.
-    // Solusi: jalankan SQL di bawah ini di Supabase SQL Editor:
-    //   ALTER TABLE public.profiles DISABLE ROW LEVEL SECURITY;
-    // atau tambah policy: USING (true) WITH CHECK (true) untuk service_role.
-
-    // Coba insert dulu (jika trigger belum jalan)
-    const { error: insertError } = await adminClient
+    // Jika masih error "permission denied", jalankan SQL ini di Supabase:
+    //   ALTER TABLE public.profiles FORCE ROW LEVEL SECURITY;
+    //   CREATE POLICY "Allow service role full access on profiles"
+    //     ON public.profiles AS PERMISSIVE FOR ALL
+    //     TO service_role USING (true) WITH CHECK (true);
+    const { error: updateError } = await adminClient
       .from("profiles")
-      .insert({ id: newUserId, full_name, role: "admin" });
+      .update({ full_name, role: "admin" })
+      .eq("id", newUserId);
 
-    if (insertError) {
-      // Jika insert gagal karena duplicate (trigger sudah jalan duluan), coba update
-      if (insertError.code === "23505") {
-        // Duplicate key — trigger sudah insert dengan role='customer', update saja
-        const { error: updateError } = await adminClient
-          .from("profiles")
-          .update({ full_name, role: "admin" })
-          .eq("id", newUserId);
-
-        if (updateError) {
-          await adminClient.auth.admin.deleteUser(newUserId);
-          return new Response(
-            JSON.stringify({ error: `Gagal set role admin: ${updateError.message}` }),
-            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-      } else {
-        // Error lain
-        await adminClient.auth.admin.deleteUser(newUserId);
-        return new Response(
-          JSON.stringify({ error: `Gagal buat profil: ${insertError.message}` }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
+    if (updateError) {
+      // Update gagal — rollback dengan hapus user
+      await adminClient.auth.admin.deleteUser(newUserId);
+      return new Response(
+        JSON.stringify({
+          error: `Gagal set role admin: ${updateError.message}. Jalankan SQL policy di Supabase SQL Editor.`,
+        }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    // ── 5. Sukses ─────────────────────────────────────────────────────────
+    // ── 6. Sukses ─────────────────────────────────────────────────────────
     return new Response(
       JSON.stringify({
         success: true,
