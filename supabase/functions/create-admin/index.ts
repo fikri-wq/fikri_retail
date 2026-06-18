@@ -60,7 +60,7 @@ serve(async (req: Request) => {
       );
     }
 
-    // ── 3. Buat user baru pakai Admin API (service_role) ──────────────────
+    // ── 3. Buat user baru pakai Admin API ─────────────────────────────────
     const adminClient = createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
@@ -91,30 +91,24 @@ serve(async (req: Request) => {
       );
     }
 
-    // ── 4. Tunggu trigger handle_new_user selesai insert ke profiles ──────
-    // Trigger DB berjalan async setelah createUser, kita tunggu 1.5 detik
+    // ── 4. Tunggu trigger handle_new_user selesai ─────────────────────────
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
-    // ── 5. Update role menjadi admin via SQL langsung (BYPASS RLS) ────────
-    // Menggunakan Postgres connection string via REST dengan service_role
-    // yang secara spesifikasi HARUS bypass RLS sepenuhnya.
-    //
-    // Jika masih error "permission denied", jalankan SQL ini di Supabase:
-    //   ALTER TABLE public.profiles FORCE ROW LEVEL SECURITY;
-    //   CREATE POLICY "Allow service role full access on profiles"
-    //     ON public.profiles AS PERMISSIVE FOR ALL
-    //     TO service_role USING (true) WITH CHECK (true);
-    const { error: updateError } = await adminClient
-      .from("profiles")
-      .update({ full_name, role: "admin" })
-      .eq("id", newUserId);
+    // ── 5. Set role admin via RPC function SECURITY DEFINER ───────────────
+    // Function 'set_user_role_admin' di database berjalan sebagai superuser
+    // sehingga 100% bypass RLS — tidak perlu policy tambahan apapun.
+    // PASTIKAN sudah menjalankan SQL di file supabase_set_admin_role.sql !
+    const { error: rpcError } = await adminClient.rpc("set_user_role_admin", {
+      target_user_id: newUserId,
+      target_full_name: full_name,
+    });
 
-    if (updateError) {
-      // Update gagal — rollback dengan hapus user
+    if (rpcError) {
+      // RPC gagal — rollback dengan hapus user
       await adminClient.auth.admin.deleteUser(newUserId);
       return new Response(
         JSON.stringify({
-          error: `Gagal set role admin: ${updateError.message}. Jalankan SQL policy di Supabase SQL Editor.`,
+          error: `Gagal set role: ${rpcError.message}. Pastikan SQL function set_user_role_admin sudah dibuat di Supabase.`,
         }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
