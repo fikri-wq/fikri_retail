@@ -140,7 +140,8 @@ fikriretailproject/
 │   │   │   ├── forgot_password_screen.dart
 │   │   │   └── verify_otp_screen.dart
 │   │   ├── admin/
-│   │   │   └── admin_dashboard.dart ← Kelola produk, pesanan, laporan
+│   │   │   ├── admin_dashboard.dart ← Kelola produk, pesanan, laporan (3 tab)
+│   │   │   └── user_management_tab.dart ← Kelola user & role (BARU)
 │   │   ├── shop/
 │   │   │   ├── home_screen.dart     ← Beranda customer
 │   │   │   ├── product_detail_screen.dart
@@ -229,6 +230,11 @@ Font: **Poppins** (Google Fonts)
 - [x] Chat per pesanan dengan customer
 - [x] Laporan bulanan (download CSV)
 - [x] Pesanan selesai otomatis hilang dari tab aktif
+- [x] **Kelola User** — daftar semua user, toggle role Admin ↔ Customer
+- [x] Search & filter user (Semua / Admin / Customer)
+- [x] Stats bar jumlah total user, admin, customer
+- [x] Detail user popup (ID, telepon, alamat, gender, tgl lahir)
+- [x] Bottom nav Admin: 3 tab (Produk / User / Pesanan)
 
 ---
 
@@ -273,4 +279,36 @@ npx supabase functions deploy generate-embedding --project-ref kboyrjpizxbdudglc
 
 ---
 
-*Dibuat: Juni 2026 | Commit terakhir: 511d6c9*
+## 📝 RIWAYAT PERUBAHAN TERAKHIR
+
+### Juni 2026 — Sesi Terbaru
+| Commit | Perubahan |
+|--------|-----------|
+| `44b71c2` | build: rebuild web untuk fitur Kelola User & fix product detail |
+| `b35e0bc` | feat: tambah halaman Kelola User di Admin Dashboard |
+| `4d7aa5e` | fix: hapus tombol share di detail produk |
+| `2994062` | fix: hapus keterangan gratis ongkir di detail produk |
+
+**Detail perubahan `b35e0bc`:**
+- Buat file baru `lib/features/admin/user_management_tab.dart`
+  - Daftar semua user dari tabel `profiles`
+  - Avatar inisial berwarna dinamis
+  - Badge role: ADMIN (biru) / CUSTOMER (oranye)
+  - Search nama + filter chip (Semua/Admin/Customer)
+  - Stats bar: Total User, Admin, Customer
+  - Toggle role Admin ↔ Customer dengan konfirmasi dialog
+  - Detail user popup: ID, telepon, alamat, gender, tgl lahir, tgl bergabung
+  - Pull-to-refresh
+- Update `admin_dashboard.dart`:
+  - Hapus `allUsersProvider` lama (dipindah ke `user_management_tab.dart`)
+  - Bottom nav dari 2 tab → 3 tab: **Produk / User / Pesanan**
+  - AppBar title dinamis sesuai tab aktif
+  - Import `user_management_tab.dart`
+- Fix `product_detail_screen.dart`:
+  - Hapus duplikat `Padding(` di AppBar actions
+  - Hapus koma ganda `),` di Row harga produk
+  - Tambah titik koma `;` yang hilang di penutup Scaffold
+
+---
+
+*Dibuat: Juni 2026 | Commit terakhir: 44b71c2*
