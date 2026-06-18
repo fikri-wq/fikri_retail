@@ -319,6 +319,8 @@ class _UserManagementTabState extends ConsumerState<UserManagementTab> {
   }
 
   // ─── Logic Buat Admin ─────────────────────────────────────────────────────
+  // Menggunakan Edge Function "create-admin" yang pakai service_role key
+  // agar bisa bypass RLS saat set role='admin' di tabel profiles.
   Future<void> _createAdminUser({
     required BuildContext ctx,
     required String name,
@@ -327,30 +329,28 @@ class _UserManagementTabState extends ConsumerState<UserManagementTab> {
     required void Function(String) onError,
   }) async {
     try {
-      // 1. Daftarkan user baru via Supabase Auth
-      final response = await SupabaseService.client.auth.signUp(
-        email: email,
-        password: password,
-        data: {'full_name': name},
+      // Panggil Edge Function "create-admin" — dia yang handle signUp + set role admin
+      final response = await SupabaseService.client.functions.invoke(
+        'create-admin',
+        body: {
+          'email': email,
+          'password': password,
+          'full_name': name,
+        },
       );
 
-      final newUserId = response.user?.id;
-      if (newUserId == null) {
-        onError('Gagal membuat akun. Coba lagi.');
+      // Cek error dari Edge Function
+      final data = response.data;
+      if (data is Map && data['error'] != null) {
+        String msg = data['error'].toString();
+        if (msg.contains('already registered') || msg.contains('already been registered') || msg.contains('Email sudah')) {
+          msg = 'Email sudah terdaftar. Gunakan email lain.';
+        }
+        onError(msg);
         return;
       }
 
-      // 2. Tunggu sebentar agar trigger handle_new_user jalan duluan
-      await Future.delayed(const Duration(milliseconds: 800));
-
-      // 3. Upsert profile dengan role admin
-      await SupabaseService.client.from('profiles').upsert({
-        'id': newUserId,
-        'full_name': name,
-        'role': 'admin',
-      });
-
-      // 4. Refresh daftar user
+      // Sukses: refresh daftar user
       ref.invalidate(allUsersProvider);
 
       if (ctx.mounted) Navigator.pop(ctx);
@@ -365,7 +365,6 @@ class _UserManagementTabState extends ConsumerState<UserManagementTab> {
       }
     } on Exception catch (e) {
       String msg = e.toString();
-      // Sederhanakan pesan error Supabase
       if (msg.contains('already registered') || msg.contains('already been registered')) {
         msg = 'Email sudah terdaftar. Gunakan email lain.';
       } else if (msg.contains('invalid')) {

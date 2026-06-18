@@ -235,6 +235,7 @@ Font: **Poppins** (Google Fonts)
 - [x] Stats bar jumlah total user, admin, customer
 - [x] Detail user popup (ID, telepon, alamat, gender, tgl lahir)
 - [x] Bottom nav Admin: 3 tab (Produk / User / Pesanan)
+- [x] **Tambah Admin Baru** — form dialog (nama, email, password) + validasi lengkap
 
 ---
 
@@ -267,6 +268,24 @@ npx supabase link --project-ref kboyrjpizxbdudglcwcd
 npx supabase functions deploy generate-embedding --project-ref kboyrjpizxbdudglcwcd --no-verify-jwt
 ```
 
+## 🛡️ EDGE FUNCTION CREATE-ADMIN
+
+File: `supabase/functions/create-admin/index.ts`
+
+Digunakan untuk membuat akun admin baru dari halaman Kelola User.
+Menggunakan `SUPABASE_SERVICE_ROLE_KEY` (otomatis tersedia di Edge Function)
+untuk bypass RLS saat insert/upsert ke tabel `profiles` dengan role='admin'.
+
+**Alasan tidak pakai `signUp` biasa dari Flutter:**
+- `signUp` dari client hanya bisa insert profile milik dirinya sendiri (RLS: `auth.uid() = id`)
+- Admin yang sedang login tidak bisa upsert profil user lain via client biasa
+- Edge Function berjalan sebagai server, punya akses service_role → bypass RLS
+
+Deploy:
+```bash
+npx supabase functions deploy create-admin --project-ref kboyrjpizxbdudglcwcd --no-verify-jwt
+```
+
 ---
 
 ## 💡 CATATAN PENTING
@@ -284,10 +303,23 @@ npx supabase functions deploy generate-embedding --project-ref kboyrjpizxbdudglc
 ### Juni 2026 — Sesi Terbaru
 | Commit | Perubahan |
 |--------|-----------|
+| (latest) | fix: tambah admin baru via Edge Function create-admin (bypass RLS) |
+| `040f060` | feat: tambah fitur Tambah Admin Baru di halaman Kelola User |
+| `c3d1f36` | docs: update REKAP_PENGEMBANGAN sesuai perubahan terbaru (Kelola User) |
 | `44b71c2` | build: rebuild web untuk fitur Kelola User & fix product detail |
 | `b35e0bc` | feat: tambah halaman Kelola User di Admin Dashboard |
 | `4d7aa5e` | fix: hapus tombol share di detail produk |
 | `2994062` | fix: hapus keterangan gratis ongkir di detail produk |
+
+**Detail perubahan `040f060`:**
+- Tambah FAB "Tambah Admin" (gradient, pojok kanan bawah) di `user_management_tab.dart`
+- Dialog form: Nama Lengkap, Email, Password, Konfirmasi Password (toggle show/hide)
+- Info banner biru di dalam dialog
+- Validasi client-side: field wajib, format email, min 6 char, password match
+- Error handling inline: email sudah terdaftar, password lemah (pesan bahasa Indonesia)
+- Flow: `auth.signUp` → delay 800ms (tunggu trigger) → upsert profiles role=admin
+- List user auto-refresh & snackbar sukses setelah akun dibuat
+- Padding list disesuaikan agar tidak tertutup FAB
 
 **Detail perubahan `b35e0bc`:**
 - Buat file baru `lib/features/admin/user_management_tab.dart`
@@ -311,4 +343,4 @@ npx supabase functions deploy generate-embedding --project-ref kboyrjpizxbdudglc
 
 ---
 
-*Dibuat: Juni 2026 | Commit terakhir: 44b71c2*
+*Dibuat: Juni 2026 | Commit terakhir: 040f060*
