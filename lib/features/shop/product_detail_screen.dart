@@ -73,11 +73,12 @@ class ProductDetailScreen extends ConsumerWidget {
             child: CircleAvatar(
               backgroundColor: Colors.black38,
               child: IconButton(
-                icon: const Icon(Icons.shopping_cart_outlined, color: Colors.white, size: 20),
+                icon: const Icon(Icons.shopping_cart_outlined,
+                    color: Colors.white, size: 20),
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const CartScreen()),
+                    MaterialPageRoute(builder: (_) => const CartScreen()),
                   );
                 },
               ),
@@ -90,28 +91,32 @@ class ProductDetailScreen extends ConsumerWidget {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 800),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Gambar Produk
-                ConstrainedBox(
+                // ── Gambar Produk ─────────────────────────────────────────
+                Container(
+                  color: Colors.white,
                   constraints: const BoxConstraints(maxHeight: 300),
-                  child: (liveProduct.imageUrl != null && liveProduct.imageUrl!.startsWith('assets/'))
+                  child: (liveProduct.imageUrl != null &&
+                          liveProduct.imageUrl!.startsWith('assets/'))
                       ? Image.asset(
                           liveProduct.imageUrl!,
                           width: double.infinity,
                           fit: BoxFit.contain,
                         )
                       : CachedNetworkImage(
-                          imageUrl: liveProduct.imageUrl ?? 'https://via.placeholder.com/400',
+                          imageUrl: liveProduct.imageUrl ??
+                              'https://via.placeholder.com/400',
                           width: double.infinity,
                           fit: BoxFit.contain,
                         ),
                 ),
 
-                // Harga dan Nama
+                // ── Harga dan Nama ────────────────────────────────────────
                 Container(
                   color: Colors.white,
-                  padding: const EdgeInsets.all(16.0),
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -133,25 +138,28 @@ class ProductDetailScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 8),
 
-                // Rincian Produk
+                // ── Rincian Produk ────────────────────────────────────────
                 Container(
                   color: Colors.white,
-                  padding: const EdgeInsets.all(16.0),
                   width: double.infinity,
+                  padding: const EdgeInsets.all(16.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
                         'Rincian Produk',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 14),
                       ),
                       const SizedBox(height: 12),
                       Row(
                         children: [
                           const SizedBox(
-                              width: 100,
-                              child: Text('Stok',
-                                  style: TextStyle(color: Colors.grey, fontSize: 13))),
+                            width: 100,
+                            child: Text('Stok',
+                                style: TextStyle(
+                                    color: Colors.grey, fontSize: 13)),
+                          ),
                           liveProductAsync.when(
                             data: (p) => Text('${p.stock}',
                                 style: const TextStyle(fontSize: 13)),
@@ -164,42 +172,43 @@ class ProductDetailScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 16),
                       const Text('Deskripsi:',
-                          style: TextStyle(color: Colors.grey, fontSize: 13)),
+                          style:
+                              TextStyle(color: Colors.grey, fontSize: 13)),
                       const SizedBox(height: 4),
                       Text(liveProduct.description,
-                          style: const TextStyle(fontSize: 13, height: 1.5)),
+                          style:
+                              const TextStyle(fontSize: 13, height: 1.5)),
                     ],
                   ),
                 ),
                 const SizedBox(height: 8),
 
-                // ── SEKSI REKOMENDASI dengan TOGGLE ──────────────────────────
+                // ── Pilihan Serupa + Toggle ────────────────────────────────
                 Container(
                   color: Colors.white,
+                  width: double.infinity,
                   padding: const EdgeInsets.only(top: 16, bottom: 16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Header + Toggle
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 16),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
                               'Pilihan Serupa',
                               style: TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 14),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14),
                             ),
                             const SizedBox(height: 10),
-                            // Toggle switch mode
                             _buildToggle(context, ref, useAI),
                           ],
                         ),
                       ),
                       const SizedBox(height: 12),
-
-                      // Daftar produk rekomendasi
                       SizedBox(
                         height: 200,
                         child: recommendationsAsync.when(
@@ -211,28 +220,34 @@ class ProductDetailScreen extends ConsumerWidget {
                                       ? 'Belum ada rekomendasi AI yang mirip.'
                                       : 'Tidak ada produk lain di kategori yang sama.',
                                   style: const TextStyle(
-                                      fontSize: 12, color: Colors.grey),
+                                      fontSize: 12,
+                                      color: Colors.grey),
                                 ),
                               );
                             }
                             return ListView.builder(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 16),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16),
                               scrollDirection: Axis.horizontal,
                               itemCount: list.length,
                               itemBuilder: (context, index) {
                                 return _buildSmallProductCard(
-                                    context, list[index], currencyFormatter);
+                                    context,
+                                    list[index],
+                                    currencyFormatter);
                               },
                             );
                           },
                           loading: () => Center(
-                              child: CircularProgressIndicator(
-                                  color:
-                                      Theme.of(context).colorScheme.primary)),
+                            child: CircularProgressIndicator(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .primary),
+                          ),
                           error: (err, stack) => const Center(
-                              child: Text('Gagal memuat rekomendasi',
-                                  style: TextStyle(fontSize: 12))),
+                            child: Text('Gagal memuat rekomendasi',
+                                style: TextStyle(fontSize: 12)),
+                          ),
                         ),
                       ),
                     ],
@@ -247,7 +262,7 @@ class ProductDetailScreen extends ConsumerWidget {
     );
   }
 
-  // ── Toggle Widget ─────────────────────────────────────────────────────────
+  // ── Toggle Widget ─────────────────────────────────────────────────────
   Widget _buildToggle(BuildContext context, WidgetRef ref, bool useAI) {
     return Container(
       decoration: BoxDecoration(
@@ -260,15 +275,17 @@ class ProductDetailScreen extends ConsumerWidget {
         children: [
           // Tombol Non-AI
           GestureDetector(
-            onTap: () => ref
-                .read(useAIRecommendationProvider.notifier)
-                .state = false,
+            onTap: () =>
+                ref.read(useAIRecommendationProvider.notifier).state =
+                    false,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 14, vertical: 7),
               decoration: BoxDecoration(
-                color: !useAI ? Colors.orange.shade600 : Colors.transparent,
+                color: !useAI
+                    ? Colors.orange.shade600
+                    : Colors.transparent,
                 borderRadius: BorderRadius.circular(22),
               ),
               child: Row(
@@ -276,29 +293,33 @@ class ProductDetailScreen extends ConsumerWidget {
                 children: [
                   Icon(Icons.category_outlined,
                       size: 14,
-                      color: !useAI ? Colors.white : Colors.grey.shade600),
+                      color: !useAI
+                          ? Colors.white
+                          : Colors.grey.shade600),
                   const SizedBox(width: 5),
                   Text(
                     'Tanpa AI',
                     style: GoogleFonts.poppins(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
-                      color: !useAI ? Colors.white : Colors.grey.shade600,
+                      color: !useAI
+                          ? Colors.white
+                          : Colors.grey.shade600,
                     ),
                   ),
                 ],
               ),
             ),
           ),
-          // Tombol AI
+          // Tombol Cosine Similarity
           GestureDetector(
-            onTap: () => ref
-                .read(useAIRecommendationProvider.notifier)
-                .state = true,
+            onTap: () =>
+                ref.read(useAIRecommendationProvider.notifier).state =
+                    true,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 14, vertical: 7),
               decoration: BoxDecoration(
                 color: useAI ? AppColors.primary : Colors.transparent,
                 borderRadius: BorderRadius.circular(22),
@@ -308,14 +329,17 @@ class ProductDetailScreen extends ConsumerWidget {
                 children: [
                   Icon(Icons.auto_awesome,
                       size: 14,
-                      color: useAI ? Colors.white : Colors.grey.shade600),
+                      color:
+                          useAI ? Colors.white : Colors.grey.shade600),
                   const SizedBox(width: 5),
                   Text(
                     'Cosine Similarity',
                     style: GoogleFonts.poppins(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
-                      color: useAI ? Colors.white : Colors.grey.shade600,
+                      color: useAI
+                          ? Colors.white
+                          : Colors.grey.shade600,
                     ),
                   ),
                 ],
@@ -327,15 +351,17 @@ class ProductDetailScreen extends ConsumerWidget {
     );
   }
 
+  // ── Kartu produk kecil di list rekomendasi ────────────────────────────
   Widget _buildSmallProductCard(
       BuildContext context, Product p, NumberFormat formatter) {
     return InkWell(
       onTap: () {
         Navigator.pop(context);
         Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (context) => ProductDetailScreen(product: p)));
+          context,
+          MaterialPageRoute(
+              builder: (_) => ProductDetailScreen(product: p)),
+        );
       },
       child: Container(
         width: 140,
@@ -350,22 +376,23 @@ class ProductDetailScreen extends ConsumerWidget {
             ClipRRect(
               borderRadius:
                   const BorderRadius.vertical(top: Radius.circular(4)),
-              child: (p.imageUrl != null && p.imageUrl!.startsWith('assets/'))
+              child: (p.imageUrl != null &&
+                      p.imageUrl!.startsWith('assets/'))
                   ? Image.asset(
                       p.imageUrl!,
                       height: 120,
                       width: 140,
                       fit: BoxFit.cover,
-                      errorBuilder: (context, url, err) =>
+                      errorBuilder: (_, __, ___) =>
                           const Icon(Icons.broken_image),
                     )
                   : CachedNetworkImage(
-                      imageUrl:
-                          p.imageUrl ?? 'https://via.placeholder.com/150',
+                      imageUrl: p.imageUrl ??
+                          'https://via.placeholder.com/150',
                       height: 120,
                       width: 140,
                       fit: BoxFit.cover,
-                      errorWidget: (context, url, err) =>
+                      errorWidget: (_, __, ___) =>
                           const Icon(Icons.broken_image),
                     ),
             ),
@@ -384,9 +411,10 @@ class ProductDetailScreen extends ConsumerWidget {
                   Text(
                     formatter.format(p.price),
                     style: TextStyle(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13),
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
                   ),
                 ],
               ),
@@ -397,6 +425,7 @@ class ProductDetailScreen extends ConsumerWidget {
     );
   }
 
+  // ── Bottom action bar (Keranjang + Beli Sekarang) ─────────────────────
   Widget _buildBottomAction(
       BuildContext context, WidgetRef ref, Product liveProduct) {
     return SafeArea(
@@ -408,7 +437,7 @@ class ProductDetailScreen extends ConsumerWidget {
             BoxShadow(
                 color: Colors.black12,
                 blurRadius: 4,
-                offset: Offset(0, -2))
+                offset: Offset(0, -2)),
           ],
         ),
         child: Row(
@@ -420,9 +449,12 @@ class ProductDetailScreen extends ConsumerWidget {
                   await addToCart(liveProduct.id);
                   ref.invalidate(cartProvider);
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
                         content: Text('Ditambahkan ke Keranjang',
-                            style: TextStyle(fontSize: 12))));
+                            style: TextStyle(fontSize: 12)),
+                      ),
+                    );
                   }
                 },
                 child: const Column(
@@ -432,8 +464,8 @@ class ProductDetailScreen extends ConsumerWidget {
                         color: Colors.black54, size: 22),
                     SizedBox(height: 2),
                     Text('Keranjang',
-                        style:
-                            TextStyle(fontSize: 10, color: Colors.black54)),
+                        style: TextStyle(
+                            fontSize: 10, color: Colors.black54)),
                   ],
                 ),
               ),
@@ -445,7 +477,7 @@ class ProductDetailScreen extends ConsumerWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) =>
+                      builder: (_) =>
                           CheckoutScreen(product: liveProduct),
                     ),
                   );
@@ -453,10 +485,12 @@ class ProductDetailScreen extends ConsumerWidget {
                 child: Container(
                   color: Theme.of(context).colorScheme.primary,
                   child: const Center(
-                    child: Text('Beli Sekarang',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold)),
+                    child: Text(
+                      'Beli Sekarang',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ),
               ),

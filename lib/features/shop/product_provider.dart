@@ -98,11 +98,60 @@ final similarProductsProvider = FutureProvider.family<List<Product>, String>((
   }
 });
 
+// ─── Helper: Deteksi kategori produk dari nama (untuk Non-AI fallback) ────────
+// Digunakan saat category_id di DB adalah null (produk dari seed_data_new)
+String _detectCategoryFromName(String name) {
+  final n = name.toLowerCase();
+  if (n.contains('aqua') || n.contains('cleo') || n.contains('club') || n.contains('le minerale') ||
+      n.contains('vit') || n.contains('air mineral')) return 'Air Mineral';
+  if (n.contains('indomie') || n.contains('mie sedap') || n.contains('sarimi') ||
+      n.contains('supermi') || n.contains('pop mie') || n.contains('mie gaga')) return 'Mie Instan';
+  if (n.contains('ultramil') || n.contains('indomilk') || n.contains('frisian') ||
+      n.contains('dancow') || n.contains('sgm') || n.contains('milo') ||
+      n.contains('bear brand') || n.contains('susu')) return 'Susu';
+  if (n.contains('rinso') || n.contains('daia') || n.contains('attack') ||
+      n.contains('so klin') || n.contains('downy') || n.contains('molto') ||
+      n.contains('detergen') || n.contains('softener')) return 'Detergen & Laundry';
+  if (n.contains('chitato') || n.contains('piattos') || n.contains('taro') ||
+      n.contains('qtela') || n.contains('oreo') || n.contains('roma') ||
+      n.contains('nabati') || n.contains('khong guan') || n.contains('snack') ||
+      n.contains('biskuit') || n.contains('wafer')) return 'Snack & Biskuit';
+  if (n.contains('coca') || n.contains('fanta') || n.contains('sprite') ||
+      n.contains('pocari') || n.contains('mizone') || n.contains('teh botol') ||
+      n.contains('teh pucuk') || n.contains('frestea') || n.contains('you c1000') ||
+      n.contains('kratingdaeng')) return 'Minuman Siap Minum';
+  if (n.contains('kapal api') || n.contains('nescafe') || n.contains('good day') ||
+      n.contains('torabika') || n.contains('luwak') || n.contains('abc kopi')) return 'Kopi';
+  if (n.contains('nutrisari') || n.contains('marimas') || n.contains('jasjus') ||
+      n.contains('chocolatos') || n.contains('beng beng drink') || n.contains('minuman serbuk')) return 'Minuman Serbuk';
+  if (n.contains('fiesta') || n.contains('so good') || n.contains('champ') ||
+      n.contains('kanzler') || n.contains('bernardi') || n.contains('belfoods') ||
+      n.contains('nugget') || n.contains('sosis') || n.contains('frozen')) return 'Frozen Food';
+  if (n.contains('masako') || n.contains('royco') || n.contains('sajiku') ||
+      n.contains('kobe') || n.contains('racik') || n.contains('bango') ||
+      n.contains('abc') || n.contains('indofood') || n.contains('bumbu')) return 'Bumbu';
+  if (n.contains('beras') || n.contains('gula') || n.contains('tepung') ||
+      n.contains('garam') || n.contains('minyak') || n.contains('margarin')) return 'Sembako';
+  if (n.contains('pepsodent') || n.contains('close up') || n.contains('formula') ||
+      n.contains('sensodyne') || n.contains('oral-b') || n.contains('ciptadent') ||
+      n.contains('pasta gigi') || n.contains('sikat gigi')) return 'Pasta Gigi & Sikat Gigi';
+  if (n.contains('lifebuoy') || n.contains('dettol') || n.contains('dove') ||
+      n.contains('lux') || n.contains('sunsilk') || n.contains('pantene') ||
+      n.contains('clear') || n.contains('sabun') || n.contains('shampoo')) return 'Sabun & Personal Care';
+  if (n.contains('mamypoko') || n.contains('merries') || n.contains('sweety') ||
+      n.contains('johnsons') || n.contains('zwitsal') || n.contains('milna') ||
+      n.contains('promina') || n.contains('bayi')) return 'Produk Bayi';
+  if (n.contains('botan') || n.contains('pronas') || n.contains('quaker') ||
+      n.contains('super bubur') || n.contains('kaleng')) return 'Makanan Kaleng';
+  return 'Lainnya';
+}
+
 // ─── Provider Non-AI: Category-based + Price Proximity ──────────────────────
 // Algoritma konvensional tanpa AI:
-//   1. Filter produk dengan category_id yang sama
-//   2. Urutkan berdasarkan selisih harga terkecil (terdekat harganya)
-//   3. Ambil 6 teratas
+//   1. Tentukan kategori produk (dari categoryId DB, atau deteksi dari nama jika null)
+//   2. Filter produk dengan kategori yang sama
+//   3. Urutkan berdasarkan selisih harga terkecil (terdekat harganya)
+//   4. Ambil 6 teratas
 final similarProductsNonAIProvider = FutureProvider.family<List<Product>, String>((
   ref,
   productId,
@@ -110,13 +159,17 @@ final similarProductsNonAIProvider = FutureProvider.family<List<Product>, String
   final products = await ref.watch(productsProvider.future);
   final product = products.firstWhere((p) => p.id == productId);
 
-  debugPrint('[Non-AI Similar] Produk: ${product.name}, categoryId: ${product.categoryId}');
+  // Tentukan kategori produk — pakai categoryId jika ada, fallback ke keyword detection
+  final targetCategory = product.categoryId ?? _detectCategoryFromName(product.name);
 
-  // Filter: sama kategori, bukan produk itu sendiri
+  debugPrint('[Non-AI Similar] Produk: ${product.name}, kategori: $targetCategory');
+
+  // Filter: kategori sama, bukan produk itu sendiri
   final candidates = products.where((p) {
     if (p.id == productId) return false;
-    if (product.categoryId == null) return false;
-    return p.categoryId == product.categoryId;
+    // Cek kecocokan kategori: via categoryId atau via keyword detection
+    final pCategory = p.categoryId ?? _detectCategoryFromName(p.name);
+    return pCategory == targetCategory;
   }).toList();
 
   // Urutkan berdasarkan selisih harga terkecil (price proximity)
@@ -126,7 +179,7 @@ final similarProductsNonAIProvider = FutureProvider.family<List<Product>, String
     return diffA.compareTo(diffB);
   });
 
-  debugPrint('[Non-AI Similar] ${candidates.length} kandidat dari kategori yang sama');
+  debugPrint('[Non-AI Similar] ${candidates.length} kandidat dari kategori "$targetCategory"');
   return candidates.take(6).toList();
 });
 
@@ -228,7 +281,9 @@ final cartRecommendationsNonAIProvider = FutureProvider.family<List<Product>, St
   for (final id in cartProductIds) {
     try {
       final p = products.firstWhere((p) => p.id == id);
-      if (p.categoryId != null) cartCategories.add(p.categoryId!);
+      // Pakai categoryId jika ada, fallback ke keyword detection
+      final cat = p.categoryId ?? _detectCategoryFromName(p.name);
+      cartCategories.add(cat);
       cartPrices.add(p.price);
     } catch (_) {
       continue;
@@ -246,8 +301,9 @@ final cartRecommendationsNonAIProvider = FutureProvider.family<List<Product>, St
   // Filter: produk dari kategori yang ada di keranjang, tapi bukan produk itu sendiri
   final candidates = products.where((p) {
     if (cartProductIds.contains(p.id)) return false;
-    if (p.categoryId == null) return false;
-    return cartCategories.contains(p.categoryId);
+    // Pakai categoryId jika ada, fallback ke keyword detection
+    final pCat = p.categoryId ?? _detectCategoryFromName(p.name);
+    return cartCategories.contains(pCat);
   }).toList();
 
   // Urutkan berdasarkan selisih harga dengan rata-rata harga keranjang
