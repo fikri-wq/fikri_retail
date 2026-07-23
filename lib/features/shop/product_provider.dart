@@ -13,6 +13,10 @@ final productsProvider = FutureProvider<List<Product>>((ref) async {
   return (response as List).map((e) => Product.fromMap(e)).toList();
 });
 
+// ─── Toggle: true = Cosine Similarity, false = Non-AI (Category + Price) ────
+// State ini global — mengubah mode di satu tempat berlaku untuk semua layar
+final useAIRecommendationProvider = StateProvider<bool>((ref) => true);
+
 // ─── Helper: Hitung Cosine Similarity antara dua vektor ─────────────────────
 double _cosineSimilarity(List<double> a, List<double> b) {
   double dotProduct = 0.0;
@@ -30,15 +34,14 @@ double _cosineSimilarity(List<double> a, List<double> b) {
 
 // ─── Helper: Hitung Price Similarity (0.0 – 1.0) ────────────────────────────
 // Rumus: 1 - (|harga_A - harga_B| / max(harga_A, harga_B))
-// Semakin dekat harganya, semakin mendekati 1.0
 double _priceSimilarity(double priceA, double priceB) {
-  if (priceA <= 0 || priceB <= 0) return 0.5; // neutral jika harga tidak valid
+  if (priceA <= 0 || priceB <= 0) return 0.5;
   final diff = (priceA - priceB).abs();
   final maxPrice = max(priceA, priceB);
   return 1.0 - (diff / maxPrice);
 }
 
-// ─── Helper: Combined Score (Semantic 70% + Price 30%) ──────────────────────
+// ─── Helper: Combined Score AI (Semantic 70% + Price 30%) ───────────────────
 double _combinedScore(
   List<double> embeddingA,
   List<double> embeddingB,
@@ -47,21 +50,17 @@ double _combinedScore(
 ) {
   const double weightSemantic = 0.70;
   const double weightPrice = 0.30;
-
   final semanticScore = _cosineSimilarity(embeddingA, embeddingB);
   final priceScore = _priceSimilarity(priceA, priceB);
-
   return (semanticScore * weightSemantic) + (priceScore * weightPrice);
 }
 
-// Provider untuk mengambil produk yang mirip (Cosine Similarity + Price Similarity)
+// ─── Provider AI: Cosine Similarity + Price Similarity ──────────────────────
 final similarProductsProvider = FutureProvider.family<List<Product>, String>((
   ref,
   productId,
 ) async {
-  // Ambil produk saat ini untuk mendapatkan embedding dan harganya
   final products = await ref.watch(productsProvider.future);
-
   final product = products.firstWhere((p) => p.id == productId);
   final embedding = product.embedding ?? List.filled(384, 0.0);
   final price = product.price;
@@ -70,7 +69,6 @@ final similarProductsProvider = FutureProvider.family<List<Product>, String>((
       'punya embedding: ${product.embedding != null}');
 
   try {
-    // Panggil RPC Supabase untuk mendapatkan kandidat awal berdasarkan semantic similarity
     final List<dynamic> response = await SupabaseService.client.rpc(
       'get_similar_products',
       params: {
@@ -82,7 +80,6 @@ final similarProductsProvider = FutureProvider.family<List<Product>, String>((
 
     debugPrint('[AI Similar] RPC berhasil → ${response.length} kandidat');
 
-    // Hitung combined score (semantic + price) untuk setiap kandidat
     List<Map<String, dynamic>> scoredProducts = [];
     for (var item in response) {
       final p = Product.fromMap(item);
@@ -91,14 +88,9 @@ final similarProductsProvider = FutureProvider.family<List<Product>, String>((
 
       final score = _combinedScore(embedding, p.embedding!, price, p.price);
       scoredProducts.add({'product': p, 'score': score});
-
-      debugPrint('[AI Similar] ${p.name} | harga: ${p.price} | combined score: ${score.toStringAsFixed(4)}');
     }
 
-    // Urutkan dari score tertinggi ke terendah
     scoredProducts.sort((a, b) => (b['score'] as double).compareTo(a['score'] as double));
-
-    // Ambil 6 teratas
     return scoredProducts.take(6).map((e) => e['product'] as Product).toList();
   } catch (e) {
     debugPrint('[AI Similar] RPC gagal: $e');
@@ -106,12 +98,39 @@ final similarProductsProvider = FutureProvider.family<List<Product>, String>((
   }
 });
 
-// Provider Rekomendasi AI untuk Keranjang (Cosine Similarity + Price Similarity)
-// Menghitung rata-rata vektor embedding dan rata-rata harga dari semua produk di keranjang,
-// lalu mencari produk yang mirip secara semantik DAN harga.
-//
-// PENTING: Gunakan String (join ID) bukan List sebagai family key,
-// karena List baru dibuat tiap rebuild → Riverpod menganggap parameter berbeda → infinite loop.
+// ─── Provider Non-AI: Category-based + Price Proximity ──────────────────────
+// Algoritma konvensional tanpa AI:
+//   1. Filter produk dengan category_id yang sama
+//   2. Urutkan berdasarkan selisih harga terkecil (terdekat harganya)
+//   3. Ambil 6 teratas
+final similarProductsNonAIProvider = FutureProvider.family<List<Product>, String>((
+  ref,
+  productId,
+) async {
+  final products = await ref.watch(productsProvider.future);
+  final product = products.firstWhere((p) => p.id == productId);
+
+  debugPrint('[Non-AI Similar] Produk: ${product.name}, categoryId: ${product.categoryId}');
+
+  // Filter: sama kategori, bukan produk itu sendiri
+  final candidates = products.where((p) {
+    if (p.id == productId) return false;
+    if (product.categoryId == null) return false;
+    return p.categoryId == product.categoryId;
+  }).toList();
+
+  // Urutkan berdasarkan selisih harga terkecil (price proximity)
+  candidates.sort((a, b) {
+    final diffA = (a.price - product.price).abs();
+    final diffB = (b.price - product.price).abs();
+    return diffA.compareTo(diffB);
+  });
+
+  debugPrint('[Non-AI Similar] ${candidates.length} kandidat dari kategori yang sama');
+  return candidates.take(6).toList();
+});
+
+// ─── Provider AI: Rekomendasi Keranjang (Cosine Similarity + Price) ──────────
 final cartRecommendationsProvider = FutureProvider.family<List<Product>, String>((
   ref,
   cartProductIdsJoined,
@@ -119,11 +138,8 @@ final cartRecommendationsProvider = FutureProvider.family<List<Product>, String>
   if (cartProductIdsJoined.isEmpty) return [];
 
   final cartProductIds = cartProductIdsJoined.split(',');
-
-  // Ambil semua produk untuk mendapatkan embedding dan harganya
   final products = await ref.watch(productsProvider.future);
 
-  // Kumpulkan embedding dan harga dari semua produk di keranjang
   final List<List<double>> embeddings = [];
   final List<double> prices = [];
 
@@ -147,8 +163,7 @@ final cartRecommendationsProvider = FutureProvider.family<List<Product>, String>
     return [];
   }
 
-  // Hitung rata-rata vektor embedding (Average Pooling)
-  final int dim = embeddings.first.length; // 384 dimensi
+  final int dim = embeddings.first.length;
   final List<double> avgEmbedding = List.filled(dim, 0.0);
   for (final emb in embeddings) {
     for (int i = 0; i < dim; i++) {
@@ -159,14 +174,11 @@ final cartRecommendationsProvider = FutureProvider.family<List<Product>, String>
     avgEmbedding[i] /= embeddings.length;
   }
 
-  // Hitung rata-rata harga dari produk di keranjang
   final double avgPrice = prices.reduce((a, b) => a + b) / prices.length;
 
   debugPrint('[AI Rekomendasi] Rata-rata harga keranjang: $avgPrice');
-  debugPrint('[AI Rekomendasi] Memanggil RPC get_similar_products...');
 
   try {
-    // Panggil RPC dengan embedding rata-rata
     final List<dynamic> response = await SupabaseService.client.rpc(
       'get_similar_products',
       params: {
@@ -178,7 +190,6 @@ final cartRecommendationsProvider = FutureProvider.family<List<Product>, String>
 
     debugPrint('[AI Rekomendasi] RPC berhasil → ${response.length} kandidat');
 
-    // Hitung combined score (semantic + price) untuk setiap kandidat
     List<Map<String, dynamic>> scoredProducts = [];
     for (var item in response) {
       final p = Product.fromMap(item);
@@ -189,14 +200,64 @@ final cartRecommendationsProvider = FutureProvider.family<List<Product>, String>
       scoredProducts.add({'product': p, 'score': score});
     }
 
-    // Urutkan dari score tertinggi ke terendah
     scoredProducts.sort((a, b) => (b['score'] as double).compareTo(a['score'] as double));
-
-    // Kembalikan 6 teratas
     return scoredProducts.take(6).map((e) => e['product'] as Product).toList();
   } catch (e) {
     debugPrint('[AI Rekomendasi] RPC gagal: $e');
     return [];
   }
+});
+
+// ─── Provider Non-AI: Rekomendasi Keranjang (Category + Price Proximity) ─────
+// Ambil semua kategori dari produk di keranjang,
+// lalu tampilkan produk dari kategori-kategori tersebut yang harganya paling dekat
+// dengan rata-rata harga keranjang.
+final cartRecommendationsNonAIProvider = FutureProvider.family<List<Product>, String>((
+  ref,
+  cartProductIdsJoined,
+) async {
+  if (cartProductIdsJoined.isEmpty) return [];
+
+  final cartProductIds = cartProductIdsJoined.split(',');
+  final products = await ref.watch(productsProvider.future);
+
+  // Kumpulkan kategori dan harga dari produk di keranjang
+  final Set<String> cartCategories = {};
+  final List<double> cartPrices = [];
+
+  for (final id in cartProductIds) {
+    try {
+      final p = products.firstWhere((p) => p.id == id);
+      if (p.categoryId != null) cartCategories.add(p.categoryId!);
+      cartPrices.add(p.price);
+    } catch (_) {
+      continue;
+    }
+  }
+
+  if (cartCategories.isEmpty) return [];
+
+  final double avgPrice = cartPrices.isEmpty
+      ? 0
+      : cartPrices.reduce((a, b) => a + b) / cartPrices.length;
+
+  debugPrint('[Non-AI Keranjang] Kategori: $cartCategories, rata harga: $avgPrice');
+
+  // Filter: produk dari kategori yang ada di keranjang, tapi bukan produk itu sendiri
+  final candidates = products.where((p) {
+    if (cartProductIds.contains(p.id)) return false;
+    if (p.categoryId == null) return false;
+    return cartCategories.contains(p.categoryId);
+  }).toList();
+
+  // Urutkan berdasarkan selisih harga dengan rata-rata harga keranjang
+  candidates.sort((a, b) {
+    final diffA = (a.price - avgPrice).abs();
+    final diffB = (b.price - avgPrice).abs();
+    return diffA.compareTo(diffB);
+  });
+
+  debugPrint('[Non-AI Keranjang] ${candidates.length} kandidat');
+  return candidates.take(6).toList();
 });
 

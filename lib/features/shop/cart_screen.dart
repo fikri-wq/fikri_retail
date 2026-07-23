@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'cart_provider.dart';
 import 'product_provider.dart';
 import '../../services/supabase_service.dart';
+import '../../main.dart' show AppColors;
 import 'package:intl/intl.dart';
 import '../order/checkout_screen.dart';
 import '../../models/product_model.dart';
@@ -246,8 +248,12 @@ class _CartScreenState extends ConsumerState<CartScreen> {
         .where((id) => id.isNotEmpty)
         .toList();
 
-    final recommendationsAsync = ref.watch(
-        cartRecommendationsProvider(cartProductIds.join(',')));
+    final useAI = ref.watch(useAIRecommendationProvider);
+
+    // Pilih provider sesuai mode
+    final recommendationsAsync = useAI
+        ? ref.watch(cartRecommendationsProvider(cartProductIds.join(',')))
+        : ref.watch(cartRecommendationsNonAIProvider(cartProductIds.join(',')));
 
     return ListView(
       padding: const EdgeInsets.only(top: 8),
@@ -368,18 +374,27 @@ class _CartScreenState extends ConsumerState<CartScreen> {
             children: [
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.auto_awesome,
-                        color: Theme.of(context).colorScheme.primary, size: 20),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Rekomendasi Untukmu',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                          color: Theme.of(context).colorScheme.primary),
+                    Row(
+                      children: [
+                        Icon(Icons.auto_awesome,
+                            color: Theme.of(context).colorScheme.primary,
+                            size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Rekomendasi Untukmu',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: Theme.of(context).colorScheme.primary),
+                        ),
+                      ],
                     ),
+                    const SizedBox(height: 10),
+                    // Toggle mode AI / Non-AI
+                    _buildToggle(context),
                   ],
                 ),
               ),
@@ -389,10 +404,13 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                 child: recommendationsAsync.when(
                   data: (recommendations) {
                     if (recommendations.isEmpty) {
-                      return const Center(
-                        child: Text('Belum ada rekomendasi yang cocok.',
-                            style:
-                                TextStyle(fontSize: 12, color: Colors.grey)),
+                      return Center(
+                        child: Text(
+                          useAI
+                              ? 'Belum ada rekomendasi AI yang cocok.'
+                              : 'Tidak ada produk lain di kategori yang sama.',
+                          style: const TextStyle(
+                              fontSize: 12, color: Colors.grey)),
                       );
                     }
                     final displayItems = recommendations.take(20).toList();
@@ -418,6 +436,80 @@ class _CartScreenState extends ConsumerState<CartScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildToggle(BuildContext context) {
+    final useAI = ref.watch(useAIRecommendationProvider);
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          GestureDetector(
+            onTap: () =>
+                ref.read(useAIRecommendationProvider.notifier).state = false,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+              decoration: BoxDecoration(
+                color: !useAI ? Colors.orange.shade600 : Colors.transparent,
+                borderRadius: BorderRadius.circular(22),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.category_outlined,
+                      size: 14,
+                      color: !useAI ? Colors.white : Colors.grey.shade600),
+                  const SizedBox(width: 5),
+                  Text(
+                    'Tanpa AI',
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: !useAI ? Colors.white : Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          GestureDetector(
+            onTap: () =>
+                ref.read(useAIRecommendationProvider.notifier).state = true,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+              decoration: BoxDecoration(
+                color: useAI ? AppColors.primary : Colors.transparent,
+                borderRadius: BorderRadius.circular(22),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.auto_awesome,
+                      size: 14,
+                      color: useAI ? Colors.white : Colors.grey.shade600),
+                  const SizedBox(width: 5),
+                  Text(
+                    'Cosine Similarity',
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: useAI ? Colors.white : Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
