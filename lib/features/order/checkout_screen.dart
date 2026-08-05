@@ -885,6 +885,25 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       // Pre-generate order_id (dibutuhkan Midtrans sebelum INSERT)
       final orderId = _generateUuid();
 
+      // Tambahkan biaya layanan dan ongkir ke items agar gross_amount == sum(item_details)
+      final List<Map<String, dynamic>> midtransItems = List.from(orderItems);
+      midtransItems.add({
+        'product_id': 'service-fee',
+        'name': 'Biaya Layanan',
+        'price': 1000,
+        'image_url': null,
+        'quantity': 1,
+      });
+      if (_deliveryFee > 0) {
+        midtransItems.add({
+          'product_id': 'delivery-fee',
+          'name': 'Biaya Pengiriman',
+          'price': _deliveryFee.toInt(),
+          'image_url': null,
+          'quantity': 1,
+        });
+      }
+
       // Requirement 1.1: Panggil Edge Function untuk mendapatkan snap_token
       MidtransTokenResult tokenResult;
       try {
@@ -895,7 +914,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           customerName: customerName,
           customerPhone: customerPhone,
           totalAmount: _totalPayment.toInt(),
-          items: orderItems,
+          items: midtransItems,
         );
       } catch (e) {
         // Requirement 1.5: Tampilkan pesan error, hentikan proses
