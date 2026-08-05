@@ -1,10 +1,12 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:http/http.dart' as http;
 import '../../services/location_service.dart';
 import '../../services/supabase_service.dart';
+import '../../services/midtrans_service.dart';
 import '../../models/product_model.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'order_provider.dart';
@@ -40,6 +42,25 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   bool _isUploading = false;
   final ImagePicker _picker = ImagePicker();
 
+  // Requirement 2.5: Simpan order_id di state lokal sesi checkout
+  // Digunakan untuk polling atau pengecekan status pasca-pembayaran.
+  // ignore: unused_field
+  String? _currentOrderId;
+
+  // MidtransService instance
+  final MidtransService _midtransService = MidtransService();
+
+  /// Menghasilkan UUID v4 secara lokal menggunakan dart:math.
+  /// Digunakan untuk pre-generate order_id sebelum memanggil Midtrans.
+  String _generateUuid() {
+    final random = Random.secure();
+    final bytes = List<int>.generate(16, (_) => random.nextInt(256));
+    bytes[6] = (bytes[6] & 0x0f) | 0x40; // version 4
+    bytes[8] = (bytes[8] & 0x3f) | 0x80; // variant 1
+    final hex = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+    return '${hex.substring(0, 8)}-${hex.substring(8, 12)}-${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20)}';
+  }
+
   Future<void> _pickReceiptImage() async {
     try {
       final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
@@ -64,19 +85,23 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   final currencyFormatter =
       NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0);
 
-  final List<Map<String, String>> _paymentMethods = [
-    {'id': 'BCA', 'logo': 'assets/bca.jpg', 'name': 'Transfer Bank BCA'},
-    {'id': 'BNI', 'logo': 'assets/bni.png', 'name': 'Transfer Bank BNI'},
-    {'id': 'BRI', 'logo': 'assets/bri.png', 'name': 'Transfer Bank BRI'},
-    {
-      'id': 'MANDIRI',
-      'logo': 'assets/mandiri.png',
-      'name': 'Transfer Bank Mandiri'
-    },
-    {'id': 'DANA', 'logo': 'assets/dana.png', 'name': 'DANA (QRIS)'},
-    {'id': 'SEABANK', 'logo': 'assets/sea.jpg', 'name': 'SeaBank'},
-    {'id': 'COD', 'logo': 'assets/cod.png', 'name': 'Bayar di Tempat (COD)'},
+  // Requirement 6.4: Dua grup metode pembayaran terpisah
+  final List<Map<String, dynamic>> _midtransPaymentMethods = [
+    {'id': 'bca_va',       'name': 'BCA Virtual Account',   'icon': Icons.account_balance},
+    {'id': 'bni_va',       'name': 'BNI Virtual Account',   'icon': Icons.account_balance},
+    {'id': 'bri_va',       'name': 'BRI Virtual Account',   'icon': Icons.account_balance},
+    {'id': 'mandiri_bill', 'name': 'Mandiri Bill',           'icon': Icons.account_balance},
+    {'id': 'qris',         'name': 'QRIS',                   'icon': Icons.qr_code},
+    {'id': 'credit_card',  'name': 'Kartu Kredit',           'icon': Icons.credit_card},
   ];
+
+  final List<Map<String, dynamic>> _codPaymentMethods = [
+    {'id': 'COD', 'name': 'Bayar di Tempat (COD)', 'icon': Icons.payments},
+  ];
+
+  // Requirement 6.2, 6.3: Helper untuk menentukan tipe pembayaran yang dipilih
+  bool get _isMidtransPayment => _selectedPayment != null && _selectedPayment != 'COD';
+  bool get _isCOD => _selectedPayment == 'COD';
 
   bool get _isCartCheckout =>
       widget.cartItems != null && widget.cartItems!.isNotEmpty;
@@ -475,7 +500,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 ),
                 const SizedBox(height: 8),
 
-                // Metode Pembayaran
+                // Metode Pembayaran — Requirement 6.4: dua grup terpisah
                 Container(
                   color: Colors.white,
                   padding: const EdgeInsets.all(16.0),
@@ -485,19 +510,37 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                       const Text('Metode Pembayaran',
                           style: TextStyle(
                               fontWeight: FontWeight.bold, fontSize: 14)),
-                      const SizedBox(height: 12),
-                      ..._paymentMethods.map((method) => ListTile(
+                      const SizedBox(height: 16),
+
+                      // --- Grup 1: Bayar dengan Midtrans ---
+                      Row(
+                        children: [
+                          Icon(Icons.payment, color: Theme.of(context).colorScheme.primary, size: 16),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Bayar dengan Midtrans',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      ..._midtransPaymentMethods.map((method) => ListTile(
                             contentPadding: EdgeInsets.zero,
-                            leading: Image.asset(method['logo']!,
-                                width: 40,
-                                height: 40,
-                                fit: BoxFit.contain,
-                                errorBuilder: (_, __, ___) =>
-                                    const Icon(Icons.payment)),
-                            title: Text(method['name']!,
-                                style: const TextStyle(fontSize: 13)),
+                            leading: Icon(
+                              method['icon'] as IconData,
+                              color: Theme.of(context).colorScheme.primary,
+                              size: 28,
+                            ),
+                            title: Text(
+                              method['name'] as String,
+                              style: const TextStyle(fontSize: 13),
+                            ),
                             trailing: Radio<String>(
-                              value: method['id']!,
+                              value: method['id'] as String,
                               groupValue: _selectedPayment,
                               activeColor: Theme.of(context).colorScheme.primary,
                               onChanged: (val) {
@@ -508,7 +551,53 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                             ),
                             onTap: () {
                               setState(() {
-                                _selectedPayment = method['id'];
+                                _selectedPayment = method['id'] as String;
+                              });
+                            },
+                          )),
+
+                      const Divider(height: 24),
+
+                      // --- Grup 2: Bayar di Tempat ---
+                      Row(
+                        children: [
+                          Icon(Icons.store, color: Colors.orange.shade700, size: 16),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Bayar di Tempat',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                              color: Colors.orange.shade700,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      ..._codPaymentMethods.map((method) => ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: Icon(
+                              method['icon'] as IconData,
+                              color: Colors.orange.shade700,
+                              size: 28,
+                            ),
+                            title: Text(
+                              method['name'] as String,
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                            trailing: Radio<String>(
+                              value: method['id'] as String,
+                              groupValue: _selectedPayment,
+                              activeColor: Colors.orange.shade700,
+                              onChanged: (val) {
+                                setState(() {
+                                  _selectedPayment = val;
+                                });
+                              },
+                            ),
+                            onTap: () {
+                              setState(() {
+                                _selectedPayment = method['id'] as String;
                               });
                             },
                           )),
@@ -518,53 +607,56 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 const SizedBox(height: 8),
 
                 // Upload Bukti Pembayaran
-                Container(
-                  color: Colors.white,
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.upload_file, color: Theme.of(context).colorScheme.primary, size: 18),
-                          const SizedBox(width: 8),
-                          const Text('Bukti Pembayaran (Opsional)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      const Text('Silakan upload screenshot struk transfer atau pembayaran QRIS.', style: TextStyle(fontSize: 12, color: Colors.black54)),
-                      const SizedBox(height: 12),
-                      GestureDetector(
-                        onTap: _pickReceiptImage,
-                        child: Container(
-                          width: double.infinity,
-                          height: 120,
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey.shade300, style: BorderStyle.solid),
-                            borderRadius: BorderRadius.circular(8),
-                            color: Colors.grey.shade50,
-                          ),
-                          child: _receiptImage != null
-                              ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: kIsWeb 
-                                      ? Image.network(_receiptImage!.path, fit: BoxFit.cover)
-                                      : Image.file(File(_receiptImage!.path), fit: BoxFit.cover),
-                                )
-                              : const Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.add_a_photo, color: Colors.grey, size: 30),
-                                    SizedBox(height: 8),
-                                    Text('Tap untuk upload struk', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                                  ],
-                                ),
+                // Requirement 6.2: Sembunyikan saat Midtrans dipilih
+                // Requirement 6.3: Tampilkan kembali saat berpindah ke COD
+                if (!_isMidtransPayment)
+                  Container(
+                    color: Colors.white,
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.upload_file, color: Theme.of(context).colorScheme.primary, size: 18),
+                            const SizedBox(width: 8),
+                            const Text('Bukti Pembayaran (Opsional)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                          ],
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 8),
+                        const Text('Silakan upload screenshot struk transfer atau pembayaran QRIS.', style: TextStyle(fontSize: 12, color: Colors.black54)),
+                        const SizedBox(height: 12),
+                        GestureDetector(
+                          onTap: _pickReceiptImage,
+                          child: Container(
+                            width: double.infinity,
+                            height: 120,
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey.shade300, style: BorderStyle.solid),
+                              borderRadius: BorderRadius.circular(8),
+                              color: Colors.grey.shade50,
+                            ),
+                            child: _receiptImage != null
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: kIsWeb 
+                                        ? Image.network(_receiptImage!.path, fit: BoxFit.cover)
+                                        : Image.file(File(_receiptImage!.path), fit: BoxFit.cover),
+                                  )
+                                : const Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.add_a_photo, color: Colors.grey, size: 30),
+                                      SizedBox(height: 8),
+                                      Text('Tap untuk upload struk', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                                    ],
+                                  ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
+                if (!_isMidtransPayment) const SizedBox(height: 8),
 
                 // Rincian Pembayaran
                 Container(
@@ -711,7 +803,11 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Konfirmasi Pesanan'),
         content: Text(
-            'Pesanan Anda akan diproses dengan metode $_selectedPayment. Silakan hubungi admin untuk bukti bayar.'),
+            _isCOD
+                ? 'Pesanan Anda akan diproses dengan pembayaran di tempat (COD).'
+                : _isMidtransPayment
+                    ? 'Pesanan Anda akan diproses via Midtrans. Anda akan diarahkan ke halaman pembayaran untuk menyelesaikan transaksi.'
+                    : 'Konfirmasi pesanan Anda.'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context),
@@ -719,137 +815,16 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   const Text('Batal', style: TextStyle(color: Colors.grey))),
           ElevatedButton(
             onPressed: () async {
-              try {
-                final userId =
-                    SupabaseService.client.auth.currentUser!.id;
+              // Requirement 6.1: COD branch — jangan panggil MidtransService sama sekali
+              if (_isCOD) {
+                await _submitCODOrder(dialogContext: context);
+                return;
+              }
 
-                // Format list item yang dipesan ke JSON
-                final List<Map<String, dynamic>> orderItems = [];
-                if (_isCartCheckout) {
-                  for (var item in widget.cartItems!) {
-                    orderItems.add({
-                      'product_id': item['products']['id'],
-                      'name': item['products']['name'],
-                      'price': (item['products']['price'] as num).toDouble(),
-                      'image_url': item['products']['image_url'],
-                      'quantity': item['quantity'],
-                    });
-                  }
-                } else {
-                  orderItems.add({
-                    'product_id': widget.product!.id,
-                    'name': widget.product!.name,
-                    'price': widget.product!.price,
-                    'image_url': widget.product!.imageUrl,
-                    'quantity': 1,
-                  });
-                }
-
-                setState(() => _isUploading = true);
-                
-                String? receiptUrl;
-                if (_receiptImage != null) {
-                  try {
-                    final fileName = '${DateTime.now().millisecondsSinceEpoch}_receipt.jpg';
-                    final bytes = await _receiptImage!.readAsBytes();
-                    await SupabaseService.client.storage
-                        .from('receipts')
-                        .uploadBinary(fileName, bytes);
-                    
-                    receiptUrl = SupabaseService.client.storage
-                        .from('receipts')
-                        .getPublicUrl(fileName);
-                  } catch (uploadError) {
-                    print('Gagal upload struk: $uploadError');
-                    if (context.mounted) {
-                      setState(() => _isUploading = false);
-                      showDialog(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          title: const Row(
-                            children: [
-                              Icon(Icons.error_outline, color: Colors.red),
-                              SizedBox(width: 8),
-                              Text('Gagal Upload Struk'),
-                            ],
-                          ),
-                          content: Text(
-                            'Gagal mengunggah bukti pembayaran:\n\n$uploadError\n\n'
-                            'Penyebab umum: Anda belum membuat Bucket bernama "receipts" di Supabase Storage Anda, atau bucket tersebut belum diset ke Public.'
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(ctx),
-                              child: const Text('Mengerti'),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
-                    return; // Abort creating order if upload failed
-                  }
-                }
-
-                // Simpan Order ke Supabase dengan GPS Tracker (jika delivery) dan List Items (JSON)
-                await SupabaseService.client.from('orders').insert({
-                  'customer_id': userId,
-                  'total_amount': _totalPayment,
-                  'status': 'pending',
-                  'lat_location': _currentPosition?.latitude,
-                  'lng_location': _currentPosition?.longitude,
-                  'address': '$_deliveryMethod${_notesController.text.isNotEmpty ? ' | Catatan: ${_notesController.text}' : ''}',
-                  'items': orderItems,
-                  'payment_receipt_url': receiptUrl,
-                });
-
-                // Kurangi stok produk sesuai quantity yang dibeli
-                for (final item in orderItems) {
-                  final productId = item['product_id']?.toString();
-                  final qty = (item['quantity'] as num?)?.toInt() ?? 1;
-                  if (productId != null) {
-                    try {
-                      // Pakai RPC function yang bypass RLS
-                      await SupabaseService.client.rpc(
-                        'decrement_product_stock',
-                        params: {
-                          'p_product_id': productId,
-                          'p_quantity': qty,
-                        },
-                      );
-                    } catch (e) {
-                      debugPrint('Gagal kurangi stok $productId: $e');
-                    }
-                  }
-                }
-
-                // Jika checkout dari keranjang, hapus semua item cart
-                if (_isCartCheckout) {
-                  await SupabaseService.client
-                      .from('carts')
-                      .delete()
-                      .eq('user_id', userId);
-                }
-
-                // Segarkan data pesanan agar langsung muncul di tab Pesanan (Customer & Admin)
-                ref.invalidate(customerOrdersProvider);
-                ref.invalidate(adminOrdersProvider);
-
-                if (context.mounted) {
-                  Navigator.pop(context); // Tutup dialog
-                  Navigator.pop(context); // Kembali ke halaman sebelumnya
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                      content: Text(
-                          '✅ Pesanan Berhasil! Menunggu kiriman Admin.')));
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context)
-                      .showSnackBar(SnackBar(content: Text('Gagal: $e')));
-                }
-              } finally {
-                if (mounted) {
-                  setState(() => _isUploading = false);
-                }
+              // Requirement 7.2: Alur checkout Midtrans
+              if (_isMidtransPayment) {
+                await _submitMidtransOrder(dialogContext: context);
+                return;
               }
             },
             style: ElevatedButton.styleFrom(
@@ -862,5 +837,258 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         ],
       ),
     );
+  }
+
+  /// Requirement 7.2: Alur checkout Midtrans
+  /// 1. Panggil MidtransService.createTransaction() → dapatkan snap_token
+  /// 2. INSERT order ke tabel orders dengan snap_token, payment_method='midtrans', payment_status='unpaid'
+  /// 3. Simpan order_id di state lokal (Requirement 2.5)
+  /// 4. Panggil MidtransService.openPaymentPage(snapToken) → buka browser
+  /// 5. Setelah kembali: invalidate providers, navigasi ke riwayat pesanan
+  Future<void> _submitMidtransOrder({required BuildContext dialogContext}) async {
+    setState(() => _isUploading = true);
+
+    try {
+      final user = SupabaseService.client.auth.currentUser!;
+      final userId = user.id;
+      final userEmail = user.email ?? '';
+
+      // Ambil nama customer dari session metadata atau gunakan fallback
+      final userMeta = user.userMetadata;
+      final customerName = (userMeta?['full_name'] as String?)
+          ?? (userMeta?['name'] as String?)
+          ?? 'Customer';
+      const customerPhone = '08000000000'; // Nomor placeholder; bisa diperluas via profil
+
+      // Format list item
+      final List<Map<String, dynamic>> orderItems = [];
+      if (_isCartCheckout) {
+        for (var item in widget.cartItems!) {
+          orderItems.add({
+            'product_id': item['products']['id'],
+            'name': item['products']['name'],
+            'price': (item['products']['price'] as num).toInt(),
+            'image_url': item['products']['image_url'],
+            'quantity': item['quantity'],
+          });
+        }
+      } else {
+        orderItems.add({
+          'product_id': widget.product!.id,
+          'name': widget.product!.name,
+          'price': widget.product!.price.toInt(),
+          'image_url': widget.product!.imageUrl,
+          'quantity': 1,
+        });
+      }
+
+      // Pre-generate order_id (dibutuhkan Midtrans sebelum INSERT)
+      final orderId = _generateUuid();
+
+      // Requirement 1.1: Panggil Edge Function untuk mendapatkan snap_token
+      MidtransTokenResult tokenResult;
+      try {
+        tokenResult = await _midtransService.createTransaction(
+          orderId: orderId,
+          customerId: userId,
+          customerEmail: userEmail,
+          customerName: customerName,
+          customerPhone: customerPhone,
+          totalAmount: _totalPayment.toInt(),
+          items: orderItems,
+        );
+      } catch (e) {
+        // Requirement 1.5: Tampilkan pesan error, hentikan proses
+        if (dialogContext.mounted) Navigator.pop(dialogContext);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Gagal membuat sesi pembayaran: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
+      // Requirement 2.1: INSERT order ke tabel orders dengan snap_token
+      try {
+        await SupabaseService.client.from('orders').insert({
+          'id': orderId,
+          'customer_id': userId,
+          'total_amount': _totalPayment,
+          'status': 'pending',
+          'payment_method': 'midtrans',
+          'payment_status': 'unpaid',
+          'snap_token': tokenResult.snapToken,
+          'lat_location': _currentPosition?.latitude,
+          'lng_location': _currentPosition?.longitude,
+          'address': '$_deliveryMethod${_notesController.text.isNotEmpty ? ' | Catatan: ${_notesController.text}' : ''}',
+          'items': orderItems,
+        });
+      } catch (e) {
+        // Requirement 2.4: Tampilkan error spesifik, jangan buka browser
+        if (dialogContext.mounted) Navigator.pop(dialogContext);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Gagal menyimpan pesanan. Periksa koneksi internet. ($e)'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
+      // Requirement 2.5: Simpan order_id di state lokal sesi checkout
+      setState(() => _currentOrderId = orderId);
+
+      // Tutup dialog konfirmasi sebelum membuka browser
+      if (dialogContext.mounted) Navigator.pop(dialogContext);
+
+      // Requirement 3.1–3.3: Buka halaman Midtrans di browser eksternal
+      try {
+        await _midtransService.openPaymentPage(tokenResult.snapToken);
+      } catch (e) {
+        // Requirement 3.6: Tampilkan error jika browser tidak tersedia
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('$e'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+
+      // Requirement 3.4: Setelah user kembali dari browser, segarkan data dan navigasi
+      ref.invalidate(customerOrdersProvider);
+      ref.invalidate(adminOrdersProvider);
+
+      if (mounted) {
+        Navigator.pop(context); // Kembali ke halaman sebelumnya (main screen)
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Pesanan dibuat! Periksa riwayat pesanan untuk status pembayaran.'),
+          ),
+        );
+      }
+    } catch (e) {
+      if (dialogContext.mounted) Navigator.pop(dialogContext);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Terjadi kesalahan: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isUploading = false);
+    }
+  }
+
+  /// Requirement 6.1, 6.5: Alur checkout COD
+  /// INSERT langsung ke tabel `orders` tanpa memanggil MidtransService sama sekali.
+  /// Jika gagal, tampilkan error via SnackBar — jangan tutup layar checkout.
+  Future<void> _submitCODOrder({required BuildContext dialogContext}) async {
+    setState(() => _isUploading = true);
+
+    try {
+      final userId = SupabaseService.client.auth.currentUser!.id;
+
+      // Format list item yang dipesan ke JSON
+      final List<Map<String, dynamic>> orderItems = [];
+      if (_isCartCheckout) {
+        for (var item in widget.cartItems!) {
+          orderItems.add({
+            'product_id': item['products']['id'],
+            'name': item['products']['name'],
+            'price': (item['products']['price'] as num).toDouble(),
+            'image_url': item['products']['image_url'],
+            'quantity': item['quantity'],
+          });
+        }
+      } else {
+        orderItems.add({
+          'product_id': widget.product!.id,
+          'name': widget.product!.name,
+          'price': widget.product!.price,
+          'image_url': widget.product!.imageUrl,
+          'quantity': 1,
+        });
+      }
+
+      // Requirement 6.1: INSERT dengan payment_method='COD', payment_status='unpaid',
+      // status='pending', tanpa snap_token — MidtransService tidak dipanggil sama sekali.
+      await SupabaseService.client.from('orders').insert({
+        'customer_id': userId,
+        'total_amount': _totalPayment,
+        'status': 'pending',
+        'payment_method': 'COD',
+        'payment_status': 'unpaid',
+        'lat_location': _currentPosition?.latitude,
+        'lng_location': _currentPosition?.longitude,
+        'address': '$_deliveryMethod${_notesController.text.isNotEmpty ? ' | Catatan: ${_notesController.text}' : ''}',
+        'items': orderItems,
+      });
+
+      // Kurangi stok produk sesuai quantity yang dibeli
+      for (final item in orderItems) {
+        final productId = item['product_id']?.toString();
+        final qty = (item['quantity'] as num?)?.toInt() ?? 1;
+        if (productId != null) {
+          try {
+            await SupabaseService.client.rpc(
+              'decrement_product_stock',
+              params: {
+                'p_product_id': productId,
+                'p_quantity': qty,
+              },
+            );
+          } catch (e) {
+            debugPrint('Gagal kurangi stok $productId: $e');
+          }
+        }
+      }
+
+      // Jika checkout dari keranjang, hapus semua item cart
+      if (_isCartCheckout) {
+        await SupabaseService.client
+            .from('carts')
+            .delete()
+            .eq('user_id', userId);
+      }
+
+      // Segarkan data pesanan
+      ref.invalidate(customerOrdersProvider);
+      ref.invalidate(adminOrdersProvider);
+
+      if (dialogContext.mounted) {
+        Navigator.pop(dialogContext); // Tutup dialog konfirmasi
+      }
+      if (mounted) {
+        Navigator.pop(context); // Kembali ke halaman sebelumnya
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('✅ Pesanan COD berhasil! Bayar saat barang tiba.')),
+        );
+      }
+    } catch (e) {
+      // Requirement 6.5: Tampilkan error spesifik — jangan tutup layar checkout
+      if (dialogContext.mounted) {
+        Navigator.pop(dialogContext); // Tutup dialog konfirmasi
+      }
+      if (mounted) {
+        // Layar checkout tetap terbuka, hanya tampilkan SnackBar error
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal menyimpan pesanan COD: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUploading = false);
+      }
+    }
   }
 }

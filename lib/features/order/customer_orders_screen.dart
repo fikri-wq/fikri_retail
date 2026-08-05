@@ -6,11 +6,20 @@ import 'order_chat_screen.dart';
 import '../../models/order_model.dart';
 import '../../services/supabase_service.dart';
 
-class CustomerOrdersScreen extends ConsumerWidget {
+class CustomerOrdersScreen extends ConsumerStatefulWidget {
   const CustomerOrdersScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CustomerOrdersScreen> createState() => _CustomerOrdersScreenState();
+}
+
+class _CustomerOrdersScreenState extends ConsumerState<CustomerOrdersScreen> {
+  // Menyimpan data pesanan terakhir yang berhasil dimuat (Req 5.5)
+  List<OrderModel>? _lastKnownOrders;
+  bool _realtimeError = false;
+
+  @override
+  Widget build(BuildContext context) {
     final ordersAsync = ref.watch(customerOrdersProvider);
     final currencyFormatter = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0);
 
@@ -32,36 +41,151 @@ class CustomerOrdersScreen extends ConsumerWidget {
                 labelColor: Theme.of(context).colorScheme.primary,
                 unselectedLabelColor: Colors.grey,
                 indicatorColor: Theme.of(context).colorScheme.primary,
-                labelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                unselectedLabelStyle: TextStyle(fontSize: 12),
-                tabs: [
+                labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                unselectedLabelStyle: const TextStyle(fontSize: 12),
+                tabs: const [
                   Tab(icon: Icon(Icons.timer), text: 'Diproses'),
                   Tab(icon: Icon(Icons.local_shipping_outlined), text: 'Dikirim/Siap'),
                   Tab(icon: Icon(Icons.star_border), text: 'Selesai/Batal'),
                 ],
               ),
             ),
+            // Banner peringatan saat Realtime stream error (Req 5.5)
+            if (_realtimeError)
+              Container(
+                width: double.infinity,
+                color: Colors.orange.shade50,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(
+                  children: [
+                    Icon(Icons.wifi_off_rounded, size: 16, color: Colors.orange.shade700),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Pembaruan otomatis tidak tersedia saat ini.',
+                        style: TextStyle(fontSize: 12, color: Colors.orange.shade800),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             Expanded(
               child: ordersAsync.when(
                 data: (orders) {
+                  // Update last known orders dan clear error saat data berhasil diterima
+                  _lastKnownOrders = orders;
+                  _realtimeError = false;
+
                   final pending = orders.where((o) => o.status == 'pending' || o.status == 'processing').toList();
                   final diantar = orders.where((o) => o.status == 'shipped').toList();
                   final selesai = orders.where((o) => o.status == 'delivered' || o.status == 'cancelled').toList();
 
                   return TabBarView(
                     children: [
-                      pending.isEmpty ? _buildEmptyState(ref, 'Tidak ada pesanan yang sedang diproses') : _buildOrderList(context, ref, pending, currencyFormatter),
-                      diantar.isEmpty ? _buildEmptyState(ref, 'Belum ada pesanan yang dikirim/siap diambil') : _buildOrderList(context, ref, diantar, currencyFormatter),
-                      selesai.isEmpty ? _buildEmptyState(ref, 'Belum ada riwayat pesanan selesai/batal') : _buildOrderList(context, ref, selesai, currencyFormatter),
+                      pending.isEmpty ? _buildEmptyState('Tidak ada pesanan yang sedang diproses') : _buildOrderList(context, pending, currencyFormatter),
+                      diantar.isEmpty ? _buildEmptyState('Belum ada pesanan yang dikirim/siap diambil') : _buildOrderList(context, diantar, currencyFormatter),
+                      selesai.isEmpty ? _buildEmptyState('Belum ada riwayat pesanan selesai/batal') : _buildOrderList(context, selesai, currencyFormatter),
                     ],
                   );
                 },
                 loading: () => Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary)),
-                error: (err, stack) => const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [CircularProgressIndicator(), SizedBox(height: 12), Text('Menghubungkan ulang...', style: TextStyle(color: Colors.grey))])),
+                // Req 5.5: Saat stream error, tampilkan banner & pertahankan data terakhir
+                error: (err, stack) {
+                  // Set error flag agar banner tampil (gunakan addPostFrameCallback agar aman di build)
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted && !_realtimeError) {
+                      setState(() => _realtimeError = true);
+                    }
+                  });
+
+                  final fallbackOrders = _lastKnownOrders ?? [];
+                  if (fallbackOrders.isEmpty) {
+                    // Belum ada data sama sekali — tampilkan info minimal
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.wifi_off_rounded, size: 48, color: Colors.grey.shade400),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Pembaruan otomatis tidak tersedia saat ini.',
+                            style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  // Ada data sebelumnya — tampilkan data terakhir di TabBarView
+                  final pending = fallbackOrders.where((o) => o.status == 'pending' || o.status == 'processing').toList();
+                  final diantar = fallbackOrders.where((o) => o.status == 'shipped').toList();
+                  final selesai = fallbackOrders.where((o) => o.status == 'delivered' || o.status == 'cancelled').toList();
+
+                  return TabBarView(
+                    children: [
+                      pending.isEmpty ? _buildEmptyState('Tidak ada pesanan yang sedang diproses') : _buildOrderList(context, pending, currencyFormatter),
+                      diantar.isEmpty ? _buildEmptyState('Belum ada pesanan yang dikirim/siap diambil') : _buildOrderList(context, diantar, currencyFormatter),
+                      selesai.isEmpty ? _buildEmptyState('Belum ada riwayat pesanan selesai/batal') : _buildOrderList(context, selesai, currencyFormatter),
+                    ],
+                  );
+                },
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // Badge widget untuk payment_status (Req 5.2, 5.3, 5.4)
+  Widget _buildPaymentStatusBadge(String paymentStatus) {
+    String label;
+    Color bgColor;
+    Color textColor;
+    IconData icon;
+
+    switch (paymentStatus) {
+      case 'paid':
+        label = 'Pembayaran Berhasil';
+        bgColor = Colors.green.shade50;
+        textColor = Colors.green.shade700;
+        icon = Icons.check_circle_outline_rounded;
+        break;
+      case 'failed':
+        label = 'Pembayaran Gagal/Kedaluwarsa';
+        bgColor = Colors.red.shade50;
+        textColor = Colors.red.shade700;
+        icon = Icons.cancel_outlined;
+        break;
+      default: // 'unpaid'
+        label = 'Menunggu Pembayaran';
+        bgColor = Colors.amber.shade50;
+        textColor = Colors.amber.shade800;
+        icon = Icons.hourglass_empty_rounded;
+        break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: textColor),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: textColor,
+              fontWeight: FontWeight.w600,
+              fontSize: 11,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -93,7 +217,7 @@ class CustomerOrdersScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildOrderList(BuildContext context, WidgetRef ref, List orders, NumberFormat formatter) {
+  Widget _buildOrderList(BuildContext context, List orders, NumberFormat formatter) {
     return RefreshIndicator(
       onRefresh: () async {
         ref.invalidate(customerOrdersProvider);
@@ -114,7 +238,7 @@ class CustomerOrdersScreen extends ConsumerWidget {
         Color statusColor = (isPending || isProcessing) ? Colors.orange 
             : (isShipped ? Theme.of(context).colorScheme.secondary 
             : (isCancelled ? Colors.red : Colors.green));
-        Color statusBgColor = statusColor.withOpacity(0.1);
+        Color statusBgColor = statusColor.withValues(alpha: 0.1);
         final isDelivery = order.address?.toLowerCase().contains('delivery') ?? true;
         
         String statusText = isPending ? 'Menunggu' 
@@ -172,7 +296,15 @@ class CustomerOrdersScreen extends ConsumerWidget {
                   ],
                 ),
                 const Divider(height: 24, thickness: 0.5),
-                
+
+                // Badge status pembayaran (Req 5.2, 5.3 — hanya tampil untuk pesanan non-COD
+                // atau COD yang belum lunas; COD biasanya unpaid sampai diserahkan)
+                if (order.paymentMethod != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _buildPaymentStatusBadge(order.paymentStatus),
+                  ),
+
                 // Body: Info Pesanan & Gambar Produk
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -258,7 +390,7 @@ class CustomerOrdersScreen extends ConsumerWidget {
                           SizedBox(
                             height: 36,
                             child: OutlinedButton(
-                              onPressed: () => _showCancelDialog(context, ref, order),
+                              onPressed: () => _showCancelDialog(context, order),
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: Colors.red,
                                 side: BorderSide(color: Colors.red.shade200),
@@ -286,7 +418,7 @@ class CustomerOrdersScreen extends ConsumerWidget {
     );
   }
 
-  void _showCancelDialog(BuildContext context, WidgetRef ref, OrderModel order) {
+  void _showCancelDialog(BuildContext context, OrderModel order) {
     showDialog(
       context: context,
       builder: (confirmCtx) => AlertDialog(
@@ -375,7 +507,7 @@ class CustomerOrdersScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildEmptyState(WidgetRef ref, String message) {
+  Widget _buildEmptyState(String message) {
     return RefreshIndicator(
       onRefresh: () async {
         ref.invalidate(customerOrdersProvider);
