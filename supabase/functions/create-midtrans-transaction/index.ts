@@ -293,13 +293,16 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   // 4. POST ke Midtrans Snap API dengan Basic Auth + timeout 10 detik
   // Requirements: 1.2, 1.4, 1.9
+  // Debug: log panjang server key dan 4 karakter pertama untuk verifikasi
+  console.log(`[create-midtrans-transaction] Server key length: ${serverKey.length}, prefix: ${serverKey.substring(0, 10)}...`);
+
   const basicAuth = btoa(serverKey + ":");
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000);
 
   let snapRes: Response;
   try {
-    snapRes = await fetch("https://app.sandbox.midtrans.com/snap/transactions", {
+    snapRes = await fetch("https://app.sandbox.midtrans.com/snap/v1/transactions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -330,12 +333,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
   }
   clearTimeout(timeoutId);
 
-  // 5. Handle error HTTP 4xx/5xx dari Midtrans — teruskan kode HTTP yang sama ke Flutter
-  // Requirements: 1.4
+  // 5. Handle error HTTP 4xx/5xx dari Midtrans
   if (!snapRes.ok) {
     let midtransErrorMessage = `Midtrans error: HTTP ${snapRes.status}`;
+    let midtransRawBody = "";
     try {
-      const midtransErrorBody = await snapRes.json() as Record<string, unknown>;
+      midtransRawBody = await snapRes.text();
+      console.error(`[create-midtrans-transaction] Midtrans error ${snapRes.status}: ${midtransRawBody}`);
+      const midtransErrorBody = JSON.parse(midtransRawBody) as Record<string, unknown>;
       if (
         midtransErrorBody.error_messages &&
         Array.isArray(midtransErrorBody.error_messages) &&
@@ -346,7 +351,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         midtransErrorMessage = midtransErrorBody.message;
       }
     } catch {
-      // Gunakan pesan default jika body tidak bisa di-parse
+      if (midtransRawBody) midtransErrorMessage = `Midtrans error: HTTP ${snapRes.status} - ${midtransRawBody}`;
     }
     console.error(`[create-midtrans-transaction] Midtrans API returned ${snapRes.status}: ${midtransErrorMessage}`);
     const errBody: ErrorResponse = { error: midtransErrorMessage };
