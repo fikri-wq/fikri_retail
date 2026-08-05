@@ -80,10 +80,9 @@ function validateRequest(body: unknown): string | null {
 // ─── JWT Verification ─────────────────────────────────────────────────────────
 
 /**
- * Decode base64url string to Uint8Array.
+ * Decode base64url string ke string JSON.
  */
-function base64urlDecode(base64url: string): Uint8Array {
-  // Convert base64url → base64 standard
+function base64urlDecodeToString(base64url: string): string {
   const base64 = base64url
     .replace(/-/g, "+")
     .replace(/_/g, "/")
@@ -93,71 +92,47 @@ function base64urlDecode(base64url: string): Uint8Array {
   for (let i = 0; i < binary.length; i++) {
     bytes[i] = binary.charCodeAt(i);
   }
-  return bytes;
+  return new TextDecoder().decode(bytes);
 }
 
 /**
- * Verifikasi JWT menggunakan SUPABASE_JWT_SECRET (HMAC-SHA256).
- * - Memvalidasi signature
- * - Memeriksa claim 'exp' (expiry)
+ * Verifikasi JWT menggunakan Supabase Auth API.
+ * Menggunakan endpoint /auth/v1/user dengan Bearer token untuk memvalidasi
+ * JWT secara server-side — lebih reliable daripada verifikasi signature manual.
  * Returns decoded payload jika valid.
- * Throws Error jika JWT tidak valid, expired, atau secret tidak tersedia.
+ * Throws Error jika JWT tidak valid atau expired.
  */
 async function verifyJwt(token: string): Promise<Record<string, unknown>> {
-  const jwtSecret = Deno.env.get("SUPABASE_JWT_SECRET");
-  if (!jwtSecret) {
-    throw new Error("SUPABASE_JWT_SECRET tidak tersedia");
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error("Konfigurasi Supabase tidak tersedia");
   }
 
-  // Split JWT menjadi tiga bagian: header.payload.signature
+  // Verifikasi JWT dengan memanggil Supabase Auth API
+  const res = await fetch(`${supabaseUrl}/auth/v1/user`, {
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "apikey": supabaseAnonKey,
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error("JWT tidak valid atau sudah kedaluwarsa");
+  }
+
+  // Decode payload dari JWT untuk mendapatkan 'sub' (user ID)
   const parts = token.split(".");
   if (parts.length !== 3) {
     throw new Error("Format JWT tidak valid");
   }
 
-  const [headerB64, payloadB64, signatureB64] = parts;
-
-  // Import key untuk verifikasi HMAC-SHA256
-  const keyData = new TextEncoder().encode(jwtSecret);
-  const cryptoKey = await crypto.subtle.importKey(
-    "raw",
-    keyData,
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["verify"],
-  );
-
-  // Verifikasi signature: sign(header + "." + payload)
-  const signingInput = new TextEncoder().encode(`${headerB64}.${payloadB64}`);
-  const signature = base64urlDecode(signatureB64);
-
-  const isValid = await crypto.subtle.verify(
-    { name: "HMAC", hash: "SHA-256" },
-    cryptoKey,
-    signature.buffer as ArrayBuffer,
-    signingInput,
-  );
-
-  if (!isValid) {
-    throw new Error("Signature JWT tidak valid");
-  }
-
-  // Decode payload
   let payload: Record<string, unknown>;
   try {
-    const payloadJson = new TextDecoder().decode(base64urlDecode(payloadB64));
-    payload = JSON.parse(payloadJson);
+    payload = JSON.parse(base64urlDecodeToString(parts[1]));
   } catch {
     throw new Error("Payload JWT tidak dapat di-parse");
-  }
-
-  // Periksa claim 'exp' (expiry)
-  const exp = payload["exp"];
-  if (typeof exp === "number") {
-    const nowSeconds = Math.floor(Date.now() / 1000);
-    if (nowSeconds > exp) {
-      throw new Error("JWT sudah kedaluwarsa");
-    }
   }
 
   return payload;
