@@ -77,8 +77,8 @@ class _CustomerOrdersScreenState extends ConsumerState<CustomerOrdersScreen> {
                   _realtimeError = false;
 
                   final pending = orders.where((o) => o.status == 'pending' || o.status == 'processing').toList();
-                  final diantar = orders.where((o) => o.status == 'shipped').toList();
-                  final selesai = orders.where((o) => o.status == 'delivered' || o.status == 'cancelled').toList();
+                  final diantar = orders.where((o) => o.status == 'diantar' || o.status == 'shipped').toList();
+                  final selesai = orders.where((o) => o.status == 'selesai' || o.status == 'delivered' || o.status == 'cancelled' || o.status == 'dibatalkan').toList();
 
                   return TabBarView(
                     children: [
@@ -119,8 +119,8 @@ class _CustomerOrdersScreenState extends ConsumerState<CustomerOrdersScreen> {
 
                   // Ada data sebelumnya — tampilkan data terakhir di TabBarView
                   final pending = fallbackOrders.where((o) => o.status == 'pending' || o.status == 'processing').toList();
-                  final diantar = fallbackOrders.where((o) => o.status == 'shipped').toList();
-                  final selesai = fallbackOrders.where((o) => o.status == 'delivered' || o.status == 'cancelled').toList();
+                  final diantar = fallbackOrders.where((o) => o.status == 'diantar' || o.status == 'shipped').toList();
+                  final selesai = fallbackOrders.where((o) => o.status == 'selesai' || o.status == 'delivered' || o.status == 'cancelled' || o.status == 'dibatalkan').toList();
 
                   return TabBarView(
                     children: [
@@ -232,8 +232,8 @@ class _CustomerOrdersScreenState extends ConsumerState<CustomerOrdersScreen> {
         final order = orders[index];
         final isPending = order.status == 'pending';
         final isProcessing = order.status == 'processing';
-        final isShipped = order.status == 'shipped';
-        final isCancelled = order.status == 'cancelled';
+        final isShipped = order.status == 'diantar' || order.status == 'shipped';
+        final isCancelled = order.status == 'cancelled' || order.status == 'dibatalkan';
         
         Color statusColor = (isPending || isProcessing) ? Colors.orange 
             : (isShipped ? Theme.of(context).colorScheme.secondary 
