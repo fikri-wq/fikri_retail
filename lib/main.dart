@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:flutter/foundation.dart';
 import 'services/supabase_service.dart';
 import 'features/auth/auth_gate.dart';
+import 'features/order/payment_success_screen.dart';
 
 // ============================================
 // BY.U STYLE COLOR PALETTE
@@ -75,8 +77,25 @@ void main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
+  /// Cek apakah URL saat ini mengandung parameter dari Midtrans redirect
+  /// Contoh: fikri-retail.vercel.app?order_id=xxx&transaction_status=settlement
+  static Map<String, String>? _getMidtransParams() {
+    if (!kIsWeb) return null;
+    try {
+      final uri = Uri.base;
+      final orderId = uri.queryParameters['order_id'];
+      final status = uri.queryParameters['transaction_status'];
+      if (orderId != null && status != null) {
+        return {'order_id': orderId, 'transaction_status': status};
+      }
+    } catch (_) {}
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final midtransParams = _getMidtransParams();
+
     return MaterialApp(
       title: 'Yeti Smart Retail',
       debugShowCheckedModeBanner: false,
@@ -127,7 +146,12 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const AuthGate(),
+      home: midtransParams != null
+          ? PaymentSuccessScreen(
+              orderId: midtransParams['order_id'],
+              transactionStatus: midtransParams['transaction_status'],
+            )
+          : const AuthGate(),
     );
   }
 }

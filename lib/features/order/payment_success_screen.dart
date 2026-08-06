@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import '../shop/main_screen.dart';
 import 'order_provider.dart';
 
 /// Halaman yang ditampilkan setelah customer selesai membayar via Midtrans.
@@ -102,8 +103,13 @@ class PaymentSuccessScreen extends ConsumerWidget {
                   child: ElevatedButton(
                     onPressed: () {
                       ref.invalidate(customerOrdersProvider);
-                      // Kembali ke halaman utama
-                      Navigator.of(context).popUntil((route) => route.isFirst);
+                      // Navigate ke MainScreen dengan tab Pesanan (index 1)
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(
+                          builder: (_) => const MainScreen(initialIndex: 1),
+                        ),
+                        (route) => false,
+                      );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF00B8E6),
