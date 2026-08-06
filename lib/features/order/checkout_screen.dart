@@ -10,6 +10,7 @@ import '../../services/midtrans_service.dart';
 import '../../models/product_model.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'order_provider.dart';
+import 'payment_success_screen.dart';
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'dart:io';
@@ -978,15 +979,17 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         return;
       }
 
-      // Requirement 3.4: Setelah user kembali dari browser, segarkan data dan navigasi
+      // Requirement 3.4: Setelah user kembali dari browser, segarkan data dan navigasi ke halaman sukses
       ref.invalidate(customerOrdersProvider);
       ref.invalidate(adminOrdersProvider);
 
       if (mounted) {
-        Navigator.pop(context); // Kembali ke halaman sebelumnya (main screen)
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Pesanan dibuat! Periksa riwayat pesanan untuk status pembayaran.'),
+        // Kembali ke main screen dulu, lalu push PaymentSuccessScreen
+        Navigator.pop(context);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PaymentSuccessScreen(orderId: orderId),
           ),
         );
       }
