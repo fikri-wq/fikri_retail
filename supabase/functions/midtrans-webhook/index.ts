@@ -187,10 +187,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
     });
   }
 
+  console.log(`[midtrans-webhook] SUPABASE_URL available: ${!!supabaseUrl}, SERVICE_ROLE_KEY available: ${!!serviceRoleKey}`);
+  console.log(`[midtrans-webhook] SUPABASE_URL value: ${supabaseUrl}`);
+
   // ── 1. Lookup order berdasarkan order_id ─────────────────────────────────
-  // Requirements: 4.6 — return HTTP 404 jika order tidak ditemukan
   const lookupUrl =
     `${supabaseUrl}/rest/v1/orders?id=eq.${encodeURIComponent(notification.order_id)}&select=id,payment_status`;
+  
+  console.log(`[midtrans-webhook] Lookup URL: ${lookupUrl}`);
 
   const lookupRes = await fetch(lookupUrl, {
     method: "GET",
@@ -202,8 +206,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
   });
 
   if (!lookupRes.ok) {
+    const errBody = await lookupRes.text();
     console.error(
-      `[midtrans-webhook] Gagal lookup order ${notification.order_id}: HTTP ${lookupRes.status}`
+      `[midtrans-webhook] Gagal lookup order ${notification.order_id}: HTTP ${lookupRes.status} — ${errBody}`
     );
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,

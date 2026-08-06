@@ -49851,9 +49851,9 @@ j=A.b([A.e2(m,m,B.Oh,m,m,new A.aJ4(n,a),m,A.tT(m,B.A.bX(0.1),m,m,m,m,m,m,m,m,m,m
 if(l==="pending")j.push(A.it(!1,B.a4Q,m,m,m,m,m,m,new A.aJ5(n,a),m,A.en(m,m,B.ec,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m)))
 if(l==="processing"){q=A.en(m,m,B.UI,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m)
 k=k?m:B.b.m(s.toLowerCase(),"delivery")
-j.push(A.it(!1,A.V(k===!0?"Kirim Via GPS":"Barang Siap Diambil",m,m,m,m,B.nZ,m,m,m),m,m,m,m,m,m,new A.aJ6(n,a),m,q))}if(l==="shipped")j.push(A.it(!1,B.a5L,m,m,m,m,m,m,new A.aJ7(n,a),m,A.en(m,m,B.cK,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m)))
-k=l==="delivered"
-if(k||l==="cancelled"){k=k?"\u2705 Selesai":"\u274c Dibatalkan"
+j.push(A.it(!1,A.V(k===!0?"Kirim Via GPS":"Barang Siap Diambil",m,m,m,m,B.nZ,m,m,m),m,m,m,m,m,m,new A.aJ6(n,a),m,q))}if(l==="shipped"||l==="diantar")j.push(A.it(!1,B.a5L,m,m,m,m,m,m,new A.aJ7(n,a),m,A.en(m,m,B.cK,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m,m)))
+k=l!=="delivered"
+if(!k||l==="cancelled"||l==="selesai"||l==="dibatalkan"){k=!k||l==="selesai"?"\u2705 Selesai":"\u274c Dibatalkan"
 j.push(A.V(k,m,m,m,m,A.cA(m,m,n.B3(l),m,m,m,m,m,m,m,m,m,m,m,B.t,m,m,!0,m,m,m,m,m,m,m,m),m,m,m))}r.push(A.aJ(j,B.n,B.f7,B.k))
 return A.aam(new A.aQ(B.eW,A.aP(r,B.K,m,B.j,B.k),m),m,2,B.Lt,m,m)}}
 A.aJh.prototype={

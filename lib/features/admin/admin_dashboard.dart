@@ -1807,7 +1807,7 @@ class _OrderListTabState extends ConsumerState<OrderListTab> with SingleTickerPr
                       style: const TextStyle(color: Colors.white, fontSize: 12)
                     ),
                   ),
-                if (o.status == 'shipped')
+                if (o.status == 'shipped' || o.status == 'diantar')
                   ElevatedButton(
                     onPressed: () async {
                       await updateOrderStatus(o.id, 'delivered');
@@ -1816,9 +1816,9 @@ class _OrderListTabState extends ConsumerState<OrderListTab> with SingleTickerPr
                     style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
                     child: const Text('Selesaikan Pesanan', style: TextStyle(color: Colors.white, fontSize: 12)),
                   ),
-                if (o.status == 'delivered' || o.status == 'cancelled')
+                if (o.status == 'delivered' || o.status == 'cancelled' || o.status == 'selesai' || o.status == 'dibatalkan')
                   Text(
-                    o.status == 'delivered' ? '✅ Selesai' : '❌ Dibatalkan',
+                    (o.status == 'delivered' || o.status == 'selesai') ? '✅ Selesai' : '❌ Dibatalkan',
                     style: TextStyle(color: getStatusColor(o.status), fontWeight: FontWeight.bold),
                   ),
               ],
