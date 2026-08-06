@@ -257,14 +257,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
     transaction_status === "capture" && fraud_status === "accept";
 
   if (isSettled || isCaptureAccepted) {
-    // Requirements: 4.3 — settlement/capture+accept → paid + diantar + simpan transaction_id
+    // Requirements: 4.3 — settlement/capture+accept → paid + pending + simpan transaction_id
+    // Status tetap 'pending' agar admin bisa memproses pesanan dulu
     updatePayload = {
       payment_status: "paid",
-      status: "diantar",
       midtrans_transaction_id: transaction_id,
     };
     console.log(
-      `[midtrans-webhook] order_id: ${notification.order_id} → payment_status='paid', status='diantar'`
+      `[midtrans-webhook] order_id: ${notification.order_id} → payment_status='paid', status tetap 'pending' (menunggu diproses admin)`
     );
   } else if (
     transaction_status === "cancel" ||

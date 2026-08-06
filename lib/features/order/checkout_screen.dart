@@ -604,58 +604,6 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 ),
                 const SizedBox(height: 8),
 
-                // Upload Bukti Pembayaran
-                // Requirement 6.2: Sembunyikan saat Midtrans dipilih
-                // Requirement 6.3: Tampilkan kembali saat berpindah ke COD
-                if (!_isMidtransPayment)
-                  Container(
-                    color: Colors.white,
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(Icons.upload_file, color: Theme.of(context).colorScheme.primary, size: 18),
-                            const SizedBox(width: 8),
-                            const Text('Bukti Pembayaran (Opsional)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        const Text('Silakan upload screenshot struk transfer atau pembayaran QRIS.', style: TextStyle(fontSize: 12, color: Colors.black54)),
-                        const SizedBox(height: 12),
-                        GestureDetector(
-                          onTap: _pickReceiptImage,
-                          child: Container(
-                            width: double.infinity,
-                            height: 120,
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey.shade300, style: BorderStyle.solid),
-                              borderRadius: BorderRadius.circular(8),
-                              color: Colors.grey.shade50,
-                            ),
-                            child: _receiptImage != null
-                                ? ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: kIsWeb 
-                                        ? Image.network(_receiptImage!.path, fit: BoxFit.cover)
-                                        : Image.file(File(_receiptImage!.path), fit: BoxFit.cover),
-                                  )
-                                : const Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(Icons.add_a_photo, color: Colors.grey, size: 30),
-                                      SizedBox(height: 8),
-                                      Text('Tap untuk upload struk', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                                    ],
-                                  ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                if (!_isMidtransPayment) const SizedBox(height: 8),
-
                 // Rincian Pembayaran
                 Container(
                   color: Colors.white,
