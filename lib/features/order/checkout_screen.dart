@@ -85,14 +85,11 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   final currencyFormatter =
       NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0);
 
-  // Requirement 6.4: Dua grup metode pembayaran terpisah
+  // Requirement 6.4: Dua pilihan metode pembayaran
+  // Midtrans: satu tombol, user memilih metode spesifik di halaman Midtrans
+  // COD: bayar di tempat
   final List<Map<String, dynamic>> _midtransPaymentMethods = [
-    {'id': 'bca_va',       'name': 'BCA Virtual Account',   'icon': Icons.account_balance},
-    {'id': 'bni_va',       'name': 'BNI Virtual Account',   'icon': Icons.account_balance},
-    {'id': 'bri_va',       'name': 'BRI Virtual Account',   'icon': Icons.account_balance},
-    {'id': 'mandiri_bill', 'name': 'Mandiri Bill',           'icon': Icons.account_balance},
-    {'id': 'qris',         'name': 'QRIS',                   'icon': Icons.qr_code},
-    {'id': 'credit_card',  'name': 'Kartu Kredit',           'icon': Icons.credit_card},
+    {'id': 'midtrans', 'name': 'Bayar via Midtrans', 'icon': Icons.payment},
   ];
 
   final List<Map<String, dynamic>> _codPaymentMethods = [
